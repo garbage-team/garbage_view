@@ -68,3 +68,16 @@ def display_overlayed(rgb, d):
     plt.imshow(d, alpha=0.5, cmap='hsv')
     plt.show()
     return None
+
+
+def bins_to_depth(depth_bins):
+    # A function that takes the predicted depth bins from the encoder-decoder
+    # and returns a numeric depth value for all pixels
+    # Depth bins should be in the order of [b, w, h, c]
+    # TODO refactor to global variables
+    bin_interval = (np.log10(80) - np.log10(0.25))/150
+    borders = np.array([np.log10(0.25) + (bin_interval * (i + 0.5)) for i in range(150)])
+    depth = depth_bins * borders
+    depth = np.sum(depth, axis=3)
+    depth = 10 ** depth
+    return depth
