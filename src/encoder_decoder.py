@@ -2,7 +2,7 @@ import tensorflow as tf
 from model_blocks import adaptive_merge, dilated_residual, prediction_layer, decode_layer
 
 
-def encoder_decoder(output_channels=1):
+def encoder_decoder():
     inputs = tf.keras.layers.Input(shape=[224, 224, 3])
     rgb = inputs
 

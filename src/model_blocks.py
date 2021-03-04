@@ -49,8 +49,8 @@ def prediction_layer(filters_in, depth_bins):
     # and then a softmax in the channels dimension, returns the depth bins
     inputs = tf.keras.Input(shape=(None, None, filters_in))
     x = tf.keras.layers.SpatialDropout2D(0.1)(inputs)
-    x = tf.keras.layers.Conv2DTranspose(depth_bins, 3, strides=2,
-                                        padding='same', use_bias=True)(x)
+    x = tf.keras.layers.Conv2D(depth_bins, 3, strides=1,
+                               padding='same', use_bias=True)(x)
     x_softmax = tf.keras.layers.Softmax()(x)
     return tf.keras.Model(inputs=inputs, outputs=[x, x_softmax])
 

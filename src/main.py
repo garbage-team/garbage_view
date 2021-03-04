@@ -5,12 +5,24 @@
 import tensorflow as tf
 from encoder_decoder import encoder_decoder
 from model_trainer import train_model_to_data
+from src.image_utils import bins_to_depth
 
 
 def main():
-    model = encoder_decoder()
+    model = trash_view_model()
     model.summary()
+    model.compile(optimizer='adam',
+                  loss=tf.keras.losses.MeanSquaredError(),
+                  metrics=['accuracy'])
     return None
+
+
+def trash_view_model():
+    inputs = tf.keras.Input(shape=(224, 224, 3))
+    enc_dec = encoder_decoder()
+    [x, x_softmax] = enc_dec(inputs)
+    depth = bins_to_depth(x_softmax)
+    return tf.keras.Model(inputs=inputs, outputs=depth)
 
 
 def save_to_tflite(model):

@@ -1,6 +1,7 @@
 # Utils for images
 import numpy as np
 import matplotlib.pyplot as plt
+import tensorflow as tf
 
 
 def normalize_rgb(rgb):
@@ -78,6 +79,6 @@ def bins_to_depth(depth_bins):
     bin_interval = (np.log10(80) - np.log10(0.25))/150
     borders = np.array([np.log10(0.25) + (bin_interval * (i + 0.5)) for i in range(150)])
     depth = depth_bins * borders
-    depth = np.sum(depth, axis=3)
+    depth = tf.reduce_sum(depth, axis=3, keepdims=True)
     depth = 10 ** depth
     return depth
