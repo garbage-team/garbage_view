@@ -12,26 +12,21 @@ def encoder_decoder(output_channels=1):
 
     # reverse the order of intermediates to get them in the right order
     # for segmenting the frame
-    intermediates = reversed(encoder_stack[:-1])
-    decoder_stack = decoder()
+    intermediates = [item for item in reversed(encoder_stack[:-1])]
+    intermediate_filters = [item for item in reversed([96, 144, 192, 576])]
+    decode_filters = [512, 512, 256, 128, 128]
 
-    # Upsampling, or placing features in the correct position
-    x = bottle_neck
-    for decode, inter in zip(decoder_stack, intermediates):
-        x = decode(x)
-        concat_layer = tf.keras.layers.Concatenate()
-        x = concat_layer([x, inter])
+    # Upsampling, and placing features in the correct position
+    x = bottle_neck  # Here we might apply ASPP
+    x = tf.keras.layers.Conv2DTranspose(512, 3, strides=2,
+                                        padding='same')(x)
+    for i in range(len(decode_filters) - 1):
+        u = dilated_residual(intermediate_filters[i], decode_filters[i])(intermediates[i])
+        x = decode_layer(decode_filters[i], decode_filters[i], decode_filters[i+1])((u, x))
 
-    # Now we have an approximate depth image, now we need to create the
-    # last layer that extracts a final depth estimation
-    last_layer = tf.keras.layers.Conv2DTranspose(
-        output_channels, 3, strides=2, padding='same')
-    x = last_layer(x)
-
-    # Before outputting the result, pass it through a sigmoid activation function
-    # so that the output is scaled 0-1
-    d_norm = tf.keras.activations.sigmoid(x)
-    return tf.keras.Model(inputs=inputs, outputs=d_norm)
+    # Now we add the prediction layer to the model
+    x, x_softmax = prediction_layer(decode_filters[-1], 150)(x)
+    return tf.keras.Model(inputs=inputs, outputs=[x, x_softmax])
 
 
 def encoder():
@@ -54,26 +49,3 @@ def encoder():
     # Create the final encoder down stack
     encoder_stack = tf.keras.Model(inputs=base_encoder.input, outputs=layers)
     return encoder_stack
-
-
-def upsampler(filters, size):
-    # returns an upsampler block that upscales an image
-    # conv2dtranspose(strides=2), BN, ReLU
-    result = tf.keras.Sequential()
-    result.add(
-      tf.keras.layers.Conv2DTranspose(filters, size, strides=2,
-                                      padding='same',
-                                      use_bias=False))
-    result.add(tf.keras.layers.BatchNormalization())
-    result.add(tf.keras.layers.ReLU())
-    return result
-
-
-def decoder():
-    decoder_stack = [
-        upsampler(512, 3),  # 7x7  ->  14x14
-        upsampler(256, 3),  # 14x14 ->  28x28
-        upsampler(128, 3),  # 28x28 ->  56x56
-        upsampler(64, 3)  # 56x56 -> 112x112
-    ]
-    return decoder_stack

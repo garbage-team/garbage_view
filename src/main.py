@@ -9,11 +9,7 @@ from model_trainer import train_model_to_data
 
 def main():
     model = encoder_decoder()
-    model.compile(optimizer='adam',
-                  loss=tf.keras.losses.MeanSquaredError(),
-                  metrics=['accuracy'])
-    model = train_model_to_data(model)
-    save_to_tflite(model)
+    model.summary()
     return None
 
 

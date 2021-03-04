@@ -29,13 +29,13 @@ def dilated_residual(filters_in, filters_out):
     # returns a model that takes an input and returns an output
     inputs = tf.keras.Input(shape=(None, None, filters_in))
 
-    x = tf.keras.layers.Conv2D(filters_out, (1, 1,), use_bias=False)(inputs)
+    x = tf.keras.layers.Conv2D(filters_out, (1, 1), use_bias=False)(inputs)
     residual = x
-    x = tf.keras.layers.Conv2D(filters_out, (3, 3,),
+    x = tf.keras.layers.Conv2D(filters_out, (3, 3),
                                padding='same', dilation_rate=2, use_bias=True)(x)
     x = tf.keras.layers.BatchNormalization(momentum=0.5)(x)
     x = tf.keras.layers.ReLU()(x)
-    x = tf.keras.layers.Conv2D(filters_out, (3, 3,),
+    x = tf.keras.layers.Conv2D(filters_out, (3, 3),
                                padding='same', dilation_rate=2, use_bias=False)(x)
     x += residual
     out = tf.keras.layers.ReLU()(x)
@@ -58,8 +58,8 @@ def prediction_layer(filters_in, depth_bins):
 def decode_layer(ll_filters_in, hl_filters_in, filters_out):
     ll_in = tf.keras.Input(shape=(None, None, ll_filters_in))
     hl_in = tf.keras.Input(shape=(None, None, hl_filters_in))
-    x = adaptive_merge(ll_filters_in, hl_filters_in, filters_out)((ll_in, hl_in))
-    x = dilated_residual(filters_out, filters_out)(x)
+    x = adaptive_merge(ll_filters_in, hl_filters_in, hl_filters_in)((ll_in, hl_in))
+    x = dilated_residual(hl_filters_in, hl_filters_in)(x)
     x = tf.keras.layers.Conv2DTranspose(filters_out, 3, strides=2,
                                         padding='same', use_bias=False)(x)
     x = tf.keras.layers.BatchNormalization()(x)
