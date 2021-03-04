@@ -1,5 +1,5 @@
 import tensorflow as tf
-# TODO: might make the encoder not trainable (see example in tf)
+from model_blocks import adaptive_merge, dilated_residual, prediction_layer, decode_layer
 
 
 def encoder_decoder(output_channels=1):

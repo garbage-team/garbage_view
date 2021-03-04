@@ -13,6 +13,7 @@ Necessary dependencies:
 
 * Python 3.8.x
 * tensorflow 2.4.x
+* tensorflow-addons
 * matplotlib
 * opencv-python
 * numpy
