@@ -17,6 +17,7 @@ Necessary dependencies:
 * matplotlib
 * opencv-python
 * numpy
+* tensorflow-datasets
 
 Recommended dependencies:
 

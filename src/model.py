@@ -1,5 +1,6 @@
 import tensorflow as tf
-from model_blocks import adaptive_merge, dilated_residual, prediction_layer, decode_layer
+from src.image_utils import bins_to_depth
+from src.model_blocks import *
 
 
 def encoder_decoder():
@@ -29,23 +30,14 @@ def encoder_decoder():
     return tf.keras.Model(inputs=inputs, outputs=[x, x_softmax])
 
 
-def encoder():
-    base_encoder = tf.keras.applications.MobileNetV2(
-      input_shape=(224, 224, 3),
-      include_top=False,
-      weights='imagenet'
-    )
+def depth_model(shape=(224, 224, 3)):
+    inputs = tf.keras.Input(shape=shape)
+    [x, x_softmax] = full_model(shape)(inputs)
+    depth = bins_to_depth(x_softmax)
+    return tf.keras.Model(inputs=inputs, outputs=depth)
 
-    # Finding the layers where we want to extract the intermediate results
-    layer_names = [
-            "block_1_expand_relu",   # 112x112
-            "block_3_expand_relu",   # 56x56
-            "block_6_expand_relu",   # 28x28
-            "block_13_expand_relu",  # 14x14
-            "block_16_project",      # 7x7
-    ]
-    layers = [base_encoder.get_layer(name).output for name in layer_names]
 
-    # Create the final encoder down stack
-    encoder_stack = tf.keras.Model(inputs=base_encoder.input, outputs=layers)
-    return encoder_stack
+def full_model(shape=(224, 224, 3)):
+    inputs = tf.keras.Input(shape=shape)
+    [x, x_softmax] = encoder_decoder()(inputs)
+    return tf.keras.Model(inputs=inputs, outputs=[x, x_softmax])

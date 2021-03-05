@@ -65,3 +65,25 @@ def decode_layer(ll_filters_in, hl_filters_in, filters_out):
     x = tf.keras.layers.BatchNormalization()(x)
     out = tf.keras.layers.ReLU()(x)
     return tf.keras.Model(inputs=[ll_in, hl_in], outputs=out)
+
+
+def encoder():
+    base_encoder = tf.keras.applications.MobileNetV2(
+      input_shape=(224, 224, 3),
+      include_top=False,
+      weights='imagenet'
+    )
+
+    # Finding the layers where we want to extract the intermediate results
+    layer_names = [
+            "block_1_expand_relu",   # 112x112
+            "block_3_expand_relu",   # 56x56
+            "block_6_expand_relu",   # 28x28
+            "block_13_expand_relu",  # 14x14
+            "block_16_project",      # 7x7
+    ]
+    layers = [base_encoder.get_layer(name).output for name in layer_names]
+
+    # Create the final encoder down stack
+    encoder_stack = tf.keras.Model(inputs=base_encoder.input, outputs=layers)
+    return encoder_stack

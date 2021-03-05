@@ -4,6 +4,19 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 
 
+def resize_normalize(rgb, d, max_depth=80., model_max_output=80.):
+    # Normalizes and resize the tf tensors of rgb and d
+    d = tf.expand_dims(d, -1)
+    img_size = 224
+    resize = tf.keras.Sequential([
+        tf.keras.layers.experimental.preprocessing.Resizing(img_size, img_size)
+    ])
+    rgb = resize(rgb)
+    d = resize(d)
+    d_scale = model_max_output / max_depth
+    return tf.cast(rgb, tf.float32) / 255., tf.cast(d, tf.float32) / d_scale
+
+
 def normalize_rgb(rgb):
     # Normalizes rgb images from values of 0-255 to values of 0.0-1.0
     # rgb :: numpy.array of shape (height, width, 3) of uint8 type
