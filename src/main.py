@@ -22,7 +22,7 @@ def main():
     print('Model finished training!')
     path= 'D:/wsl/modelv2'
     saveModel(model, path)  # pass a good path
-    testModel(ds,model)
+    testModel(nyu,model)
     return None
 
 
