@@ -4,24 +4,27 @@
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import tensorflow as tf
 import tensorflow_datasets as tfds
-import matplotlib.pyplot as plt
-from src.model import depth_model
+from src.model import init_model
 from src.image_utils import display_images, resize_normalize
+from src.data_loader import load_data
 
 
 def main():
     configGPU()
-    model = depth_model()
-    model.summary()
-    model.compile(optimizer='adam',
-                  loss=tf.keras.losses.MeanSquaredError(),
-                  metrics=['accuracy'])
-    nyu = loadNYUDV2(batch=8, shuffle=False)
-    model.fit(nyu, epochs=3)
-    print('Model finished training!')
+    model = init_model()
+    #nyu = loadNYUDV2(batch=False, shuffle=False)
+    #model.fit(nyu, epochs=3)
+
     path = 'D:/wsl/modelv2'
-    save_model(model, path)  # pass a good path
-    test_model([(rgb, d) for (rgb, d) in nyu.take(1)], model)
+    #save_model(model, path)  # pass a good path
+
+    img_paths = [('D:/wsl/17_Color.png', 'D:/wsl/17_Depth.raw')]
+    imgs = load_data(img_paths)
+    [(rgb, d)] = imgs
+    rgb, d = resize_normalize(rgb, d)
+
+    model = load_model(path)
+    test_model(rgb, d, model)
     return None
 
 
@@ -70,13 +73,12 @@ def configGPU():
     return None
 
 
-def test_model(rgb_d, model):
+def test_model(rgb, d, model):
     # Takes a list of [(rgb, d)] in rgb_d
     print("Testing model...")
-    [rgb, d] = rgb_d
     rgb = tf.expand_dims(rgb, 0)  # Convert from [h, w, c] to [1, h, w, c]
     d_est = model.predict(rgb)
-    display_images([rgb, d, d_est])
+    display_images([rgb[0], d, d_est[0]])
     return None
 
 
@@ -84,6 +86,13 @@ def save_model(model, path):
     tf.saved_model.save(model, path)
     print('Model saved to:', path)
     return None
+
+
+def load_model(model_path):
+    model = tf.keras.models.load_model(model_path)
+    print("Loaded existing model successfully!")
+    model.summary()
+    return model
 
 
 if __name__ == '__main__':

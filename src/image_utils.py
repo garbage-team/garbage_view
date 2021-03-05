@@ -67,8 +67,8 @@ def display_images(img_list):
     plt.figure(0)
     if len(img_list) > 5:
         raise ValueError("Too many images in plot function")
-    for i, img in iter(img_list):
-        plt.subplot(1, len(img_list), i)
+    for i, img in enumerate(img_list):
+        plt.subplot(1, len(img_list), i+1)
         plt.imshow(img, cmap='hsv')
     plt.show()
     return None
