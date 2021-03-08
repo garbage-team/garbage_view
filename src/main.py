@@ -39,27 +39,7 @@ def save_to_tflite(model):
     return None
 
 
-def loadNYUDV2(batch=32,shuffle=True):
-    nyudv2, info = tfds.load('nyu_depth_v2', split='train', with_info=True, shuffle_files=True, as_supervised=True,
-                             data_dir='D:/wsl/tensorflow_datasets')
-    nyudv2 = nyudv2.map(
-        resize_normalize, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    nyudv2 = nyudv2.cache()
-    BATCH_SIZE = batch
 
-    if batch and shuffle:
-        SHUFFLE_SIZE = int(5 * 47584 / BATCH_SIZE) # Replace number with a num_elements type of value
-        nyudv2 = nyudv2.shuffle(SHUFFLE_SIZE)  # check that this is the correct way of calling num_examples
-        nyudv2 = nyudv2.batch(BATCH_SIZE)
-    if batch and not shuffle:
-        nyudv2 = nyudv2.batch(BATCH_SIZE)
-    if shuffle and not batch:
-        SHUFFLE_SIZE = 5*47584  # Replace number with a num_elements type of value
-        nyudv2 = nyudv2.shuffle(SHUFFLE_SIZE)  # check that this is the correct way of calling num_examples
-
-    nyudv2 = nyudv2.prefetch(tf.data.experimental.AUTOTUNE)
-
-    return nyudv2
 
 
 def configGPU():
