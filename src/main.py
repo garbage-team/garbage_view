@@ -7,6 +7,7 @@ import tensorflow_datasets as tfds
 import matplotlib.pyplot as plt
 from src.model import depth_model
 from src.image_utils import display_images, resize_normalize
+from src.loss_functions import custom_loss
 
 
 def main():
@@ -14,14 +15,14 @@ def main():
     model = depth_model()
     model.summary()
     model.compile(optimizer='adam',
-                  loss=tf.keras.losses.MeanSquaredError(),
+                  loss=custom_loss,
                   metrics=['accuracy'])
-    nyu = loadNYUDV2(batch=8, shuffle=False)
-    model.fit(nyu, epochs=3)
-    print('Model finished training!')
-    path = 'D:/wsl/modelv2'
-    save_model(model, path)  # pass a good path
-    test_model([(rgb, d) for (rgb, d) in nyu.take(1)], model)
+    #nyu = loadNYUDV2(batch=8, shuffle=False)
+    #model.fit(nyu, epochs=3)
+    #print('Model finished training!')
+    #path = 'D:/wsl/modelv2'
+    #save_model(model, path)  # pass a good path
+    #test_model([(rgb, d) for (rgb, d) in nyu.take(1)], model)
     return None
 
 

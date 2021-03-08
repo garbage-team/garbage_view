@@ -1,6 +1,7 @@
 import unittest
 from src import image_utils
 import numpy as np
+import tensorflow as tf
 
 
 class NormalizeTestCase(unittest.TestCase):
@@ -35,6 +36,29 @@ class NormalizeTestCase(unittest.TestCase):
         d = image_utils.un_normalize_d(self.d_norm, 4500)
         self.assertTrue(np.max(d) <= 4500)
         self.assertTrue(np.min(d) >= 0)
+
+
+class BinsTestCase(unittest.TestCase):
+    def setUp(self) -> None:
+        self.some_bins = tf.random.uniform([224, 224, 1], minval=0, maxval=149, dtype=tf.int32)
+        self.some_depth = tf.random.uniform([224, 224, 1], minval=-1., maxval=82., dtype=tf.float32)
+
+    def test_bins_to_depth(self):
+        self.assertTrue(True)
+
+    def test_depth_to_bins(self):
+        bins = image_utils.depth_to_bins(self.some_depth)
+        self.assertTrue(bins.dtype == tf.dtypes.int32)
+        self.assertTrue(tf.reduce_max(bins) <= 151)
+        self.assertTrue(tf.reduce_min(bins) >= 0)
+        # Test that bins is 151 at all depths < 0.25
+        min_mask = tf.math.less(self.some_depth, 0.25)
+        min_tensor = tf.boolean_mask(bins, min_mask)
+        self.assertTrue(tf.reduce_all(tf.equal(min_tensor, 151)))
+        # Test that bins is 149 at all depths > 80
+        max_mask = tf.math.greater(self.some_depth, 80.)
+        max_tensor = tf.boolean_mask(bins, max_mask)
+        self.assertTrue(tf.reduce_all(tf.equal(max_tensor, 149)))
 
 
 if __name__ == '__main__':

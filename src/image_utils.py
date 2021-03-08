@@ -87,11 +87,31 @@ def display_overlayed(rgb, d):
 def bins_to_depth(depth_bins):
     # A function that takes the predicted depth bins from the encoder-decoder
     # and returns a numeric depth value for all pixels
-    # Depth bins should be in the order of [b, w, h, c]
+    # Depth bins should be in the order of [b, h, w, c]
     # TODO refactor to global variables
-    bin_interval = (np.log10(80) - np.log10(0.25))/150
+    bin_interval = (np.log10(80) - np.log10(0.25)) / 150.
     borders = np.array([np.log10(0.25) + (bin_interval * (i + 0.5)) for i in range(150)])
     depth = depth_bins * borders
     depth = tf.reduce_sum(depth, axis=3, keepdims=True)
     depth = 10 ** depth
     return depth
+
+
+def depth_to_bins(depth):
+    # A function that takes the predicted depth bins from the encoder-decoder
+    # and returns a numeric depth value for all pixels
+    # Depth bins should be in the order of [b, w, h, c]
+    # TODO refactor to global variables
+    bin_interval = (np.log10(80) - np.log10(0.25)) / 150.
+    invalid_mask = tf.math.greater_equal(depth, 0.25)
+    depth = tf.math.add(depth, -0.25)
+    depth = tf.keras.activations.relu(depth, max_value=80.0-0.25)
+    depth = tf.math.add(depth, 0.25)
+    x = tf.math.log(0.25) / tf.math.log(tf.constant(10, dtype=depth.dtype))
+    bins = (tf.math.log(depth) / tf.math.log(tf.constant(10, dtype=depth.dtype)) - x) / bin_interval
+    bins = tf.cast(tf.round(bins), tf.int32)
+    bins = tf.math.multiply(bins, tf.cast(invalid_mask, bins.dtype))
+    bins = tf.math.add(bins, tf.math.multiply(tf.cast(tf.math.logical_not(invalid_mask), bins.dtype), 151))
+    max_mask = tf.math.equal(bins, 150)
+    bins = tf.math.subtract(bins, tf.cast(max_mask, bins.dtype))
+    return bins
