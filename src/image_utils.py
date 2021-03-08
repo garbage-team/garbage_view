@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
+from src.config import cfg
 
 
 def resize_normalize(rgb, d, max_depth=80., model_max_output=80.):
@@ -89,8 +90,8 @@ def bins_to_depth(depth_bins):
     # and returns a numeric depth value for all pixels
     # Depth bins should be in the order of [b, h, w, c]
     # TODO refactor to global variables
-    bin_interval = (np.log10(80) - np.log10(0.25)) / 150.
-    borders = np.array([np.log10(0.25) + (bin_interval * (i + 0.5)) for i in range(150)])
+    bin_interval = cfg["bin_interval"]
+    borders = np.array([np.log10(cfg["min_depth"]) + (bin_interval * (i + 0.5)) for i in range(cfg["depth_bins"])])
     depth = depth_bins * borders
     depth = tf.reduce_sum(depth, axis=3, keepdims=True)
     depth = 10 ** depth
@@ -98,20 +99,25 @@ def bins_to_depth(depth_bins):
 
 
 def depth_to_bins(depth):
-    # A function that takes the predicted depth bins from the encoder-decoder
-    # and returns a numeric depth value for all pixels
-    # Depth bins should be in the order of [b, w, h, c]
-    # TODO refactor to global variables
-    bin_interval = (np.log10(80) - np.log10(0.25)) / 150.
-    invalid_mask = tf.math.greater_equal(depth, 0.25)
-    depth = tf.math.add(depth, -0.25)
-    depth = tf.keras.activations.relu(depth, max_value=80.0-0.25)
-    depth = tf.math.add(depth, 0.25)
-    x = tf.math.log(0.25) / tf.math.log(tf.constant(10, dtype=depth.dtype))
+    # A function that takes a depth and evaluates the correct bins
+    # Depth should be in shape [b, h, w, 1] or [b, h, w]
+    if len(depth.shape) >= 4:
+        depth = depth[:, :, :, 0]
+    bin_interval = cfg["bin_interval"]
+    valid_mask = tf.math.greater_equal(depth, cfg["min_depth"])
+    depth = tf.math.add(depth, -cfg["min_depth"])
+    depth = tf.keras.activations.relu(depth, max_value=cfg["max_depth"]-cfg["min_depth"])
+    depth = tf.math.add(depth, cfg["min_depth"])
+    x = tf.math.log(cfg["min_depth"]) / tf.math.log(tf.constant(10, dtype=depth.dtype))
     bins = (tf.math.log(depth) / tf.math.log(tf.constant(10, dtype=depth.dtype)) - x) / bin_interval
     bins = tf.cast(tf.round(bins), tf.int32)
-    bins = tf.math.multiply(bins, tf.cast(invalid_mask, bins.dtype))
-    bins = tf.math.add(bins, tf.math.multiply(tf.cast(tf.math.logical_not(invalid_mask), bins.dtype), 151))
-    max_mask = tf.math.equal(bins, 150)
+    bins = tf.math.multiply(bins, tf.cast(valid_mask, bins.dtype))
+    bins = tf.math.add(bins,
+                       tf.math.multiply(
+                           tf.cast(
+                               tf.math.logical_not(valid_mask),
+                               bins.dtype),
+                           cfg["depth_bins"] + 1))
+    max_mask = tf.math.equal(bins, cfg["depth_bins"])
     bins = tf.math.subtract(bins, tf.cast(max_mask, bins.dtype))
     return bins

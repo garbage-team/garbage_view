@@ -1,8 +1,9 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
+from src.config import cfg
 
 
-def adaptive_merge(ll_filters_in, hl_filters_in, filters_out):
+def adaptive_merge(ll_filters_in: int, hl_filters_in: int, filters_out: int):
     # An adaptive merge block for merging low level and high level features
     # Must know the number of filters in the inputs and the number of filters out
     # returns a model with inputs as [low_level, high_level] and outputs [merged]
@@ -24,7 +25,7 @@ def adaptive_merge(ll_filters_in, hl_filters_in, filters_out):
     return tf.keras.Model(inputs=inputs, outputs=out)
 
 
-def dilated_residual(filters_in, filters_out):
+def dilated_residual(filters_in: int, filters_out: int):
     # A dilated residual block
     # returns a model that takes an input and returns an output
     inputs = tf.keras.Input(shape=(None, None, filters_in))
@@ -43,7 +44,7 @@ def dilated_residual(filters_in, filters_out):
     return tf.keras.Model(inputs=inputs, outputs=out)
 
 
-def prediction_layer(filters_in, depth_bins):
+def prediction_layer(filters_in: int, depth_bins: int):
     # The prediction layer of the model
     # Takes any amount of filters as an input and applies a convolution,
     # and then a softmax in the channels dimension, returns the depth bins
@@ -55,7 +56,7 @@ def prediction_layer(filters_in, depth_bins):
     return tf.keras.Model(inputs=inputs, outputs=[x, x_softmax])
 
 
-def decode_layer(ll_filters_in, hl_filters_in, filters_out):
+def decode_layer(ll_filters_in: int, hl_filters_in: int, filters_out: int):
     ll_in = tf.keras.Input(shape=(None, None, ll_filters_in))
     hl_in = tf.keras.Input(shape=(None, None, hl_filters_in))
     x = adaptive_merge(ll_filters_in, hl_filters_in, hl_filters_in)((ll_in, hl_in))
@@ -69,19 +70,13 @@ def decode_layer(ll_filters_in, hl_filters_in, filters_out):
 
 def encoder():
     base_encoder = tf.keras.applications.MobileNetV2(
-      input_shape=(224, 224, 3),
+      input_shape=cfg["input_size"],
       include_top=False,
       weights='imagenet'
     )
 
     # Finding the layers where we want to extract the intermediate results
-    layer_names = [
-            "block_1_expand_relu",   # 112x112
-            "block_3_expand_relu",   # 56x56
-            "block_6_expand_relu",   # 28x28
-            "block_13_expand_relu",  # 14x14
-            "block_16_project",      # 7x7
-    ]
+    layer_names = cfg["encoder_block_names"]
     layers = [base_encoder.get_layer(name).output for name in layer_names]
 
     # Create the final encoder down stack

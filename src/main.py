@@ -4,7 +4,7 @@
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from src.model import init_model
+from src.model import depth_model
 from src.image_utils import display_images, resize_normalize
 from src.loss_functions import custom_loss
 from src.data_loader import load_data
@@ -13,16 +13,9 @@ from src.data_loader import load_data
 def main():
     # configGPU()
     model = depth_model()
-    model.summary()
     model.compile(optimizer='adam',
-                  loss=custom_loss,
+                  loss=tf.keras.losses.MeanSquaredError(),
                   metrics=['accuracy'])
-    #nyu = loadNYUDV2(batch=8, shuffle=False)
-    #model.fit(nyu, epochs=3)
-    #print('Model finished training!')
-    #path = 'D:/wsl/modelv2'
-    #save_model(model, path)  # pass a good path
-    #test_model([(rgb, d) for (rgb, d) in nyu.take(1)], model)
     return None
 
 
