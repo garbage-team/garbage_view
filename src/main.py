@@ -4,14 +4,14 @@
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import tensorflow as tf
 import tensorflow_datasets as tfds
-import matplotlib.pyplot as plt
-from src.model import depth_model
+from src.model import init_model
 from src.image_utils import display_images, resize_normalize
 from src.loss_functions import custom_loss
+from src.data_loader import load_data
 
 
 def main():
-    configGPU()
+    # configGPU()
     model = depth_model()
     model.summary()
     model.compile(optimizer='adam',
@@ -71,13 +71,12 @@ def configGPU():
     return None
 
 
-def test_model(rgb_d, model):
+def test_model(rgb, d, model):
     # Takes a list of [(rgb, d)] in rgb_d
     print("Testing model...")
-    [rgb, d] = rgb_d
     rgb = tf.expand_dims(rgb, 0)  # Convert from [h, w, c] to [1, h, w, c]
     d_est = model.predict(rgb)
-    display_images([rgb, d, d_est])
+    display_images([rgb[0], d, d_est[0]])
     return None
 
 
@@ -85,6 +84,13 @@ def save_model(model, path):
     tf.saved_model.save(model, path)
     print('Model saved to:', path)
     return None
+
+
+def load_model(model_path):
+    model = tf.keras.models.load_model(model_path)
+    print("Loaded existing model successfully!")
+    model.summary()
+    return model
 
 
 if __name__ == '__main__':

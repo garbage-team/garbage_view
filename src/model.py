@@ -41,3 +41,12 @@ def full_model(shape=(224, 224, 3)):
     inputs = tf.keras.Input(shape=shape)
     [x, x_softmax] = encoder_decoder()(inputs)
     return tf.keras.Model(inputs=inputs, outputs=[x, x_softmax])
+
+
+def init_model():
+    model = depth_model()
+    model.summary()
+    model.compile(optimizer='adam',
+               loss=tf.keras.losses.MeanSquaredError(),
+                metrics=['accuracy'])
+    return model
