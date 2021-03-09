@@ -4,19 +4,24 @@
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from src.model import depth_model
-from src.image_utils import display_images, resize_normalize
-from src.loss_functions import custom_loss
-from src.data_loader import load_data
+from src.model import sm_model
+from src.image_utils import display_images, resize_normalize, bins_to_depth
+from src.loss_functions import wcel_loss
+from src.data_loader import load_nyudv2, load_data
 
 
 def main():
-    # configGPU()
-    model = depth_model()
-    optimizer = tf.keras.optimizers.SGD(learning_rate=0.1)
-    model.compile(optimizer=optimizer,
-                  loss=tf.keras.losses.MeanSquaredError(),
-                  metrics=['accuracy'])
+    configGPU()
+    path = 'D:/wsl/modelv2_1_wcel'
+    model = load_model(path)
+    ds = load_nyudv2(shuffle=False, batch=4)
+    model.fit(ds, epochs=4)
+
+    save_model(model, path)
+    img_paths=[('D:/wsl/17_Color.png', 'D:/wsl/17_Depth.raw')]
+    [(rgb, d)] = load_data(img_paths)
+    rgb ,d = resize_normalize(rgb, d, max_depth=80000)
+    test_model(rgb, d, model)
     return None
 
 
@@ -50,6 +55,7 @@ def test_model(rgb, d, model):
     print("Testing model...")
     rgb = tf.expand_dims(rgb, 0)  # Convert from [h, w, c] to [1, h, w, c]
     d_est = model.predict(rgb)
+    d_est = bins_to_depth(d_est)
     display_images([rgb[0], d, d_est[0]])
     return None
 
@@ -61,7 +67,11 @@ def save_model(model, path):
 
 
 def load_model(model_path):
-    model = tf.keras.models.load_model(model_path)
+    model = tf.keras.models.load_model(model_path, compile=False) # TODO Add the compilation arguments here instead
+    optimizer = tf.keras.optimizers.SGD(learning_rate=0.1)
+    model.compile(optimizer=optimizer,
+                  loss=wcel_loss,
+                  metrics=['accuracy'])
     print("Loaded existing model successfully!")
     model.summary()
     return model

@@ -8,7 +8,7 @@ def wcel_loss(gt, pred):
     # loss of the predicted logits and the ground truth depth logits
     # param pred: [[b, h, w, 150], [b, h, w, 150]]
     depth_bins = cfg["depth_bins"]
-    [pred_logits, pred_softmax] = pred
+    pred_softmax = pred
     gt_bins = depth_to_bins(gt)
     pred_logsoft = tf.math.log(pred_softmax)
     pred_logsoft = tf.transpose(pred_logsoft, perm=[0, 2, 1, 3])  # [b, h, w, 150] -> [b, w, h, 150]
