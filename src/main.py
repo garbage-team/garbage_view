@@ -13,7 +13,8 @@ from src.data_loader import load_data
 def main():
     # configGPU()
     model = depth_model()
-    model.compile(optimizer='adam',
+    optimizer = tf.keras.optimizers.SGD(learning_rate=0.1)
+    model.compile(optimizer=optimizer,
                   loss=tf.keras.losses.MeanSquaredError(),
                   metrics=['accuracy'])
     return None
