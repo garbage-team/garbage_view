@@ -39,6 +39,12 @@ def depth_model(shape=(224, 224, 3)):
     return tf.keras.Model(inputs=inputs, outputs=depth)
 
 
+def sm_model(shape=(224, 224, 3)):
+    inputs = tf.keras.Input(shape=shape)
+    [x, x_softmax] = full_model(shape)(inputs)
+    return tf.keras.Model(inputs=inputs, outputs=x_softmax)
+
+
 def full_model(shape=(224, 224, 3)):
     inputs = tf.keras.Input(shape=shape)
     [x, x_softmax] = encoder_decoder()(inputs)
