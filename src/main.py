@@ -1,7 +1,3 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import tensorflow as tf
 import tensorflow_datasets as tfds
 from src.model import sm_model
@@ -11,16 +7,15 @@ from src.data_loader import load_nyudv2, load_data
 
 
 def main():
-    configGPU()
+    config_gpu()
     path = 'D:/wsl/modelv2_1_wcel'
     model = load_model(path)
     ds = load_nyudv2(shuffle=False, batch=4)
     model.fit(ds, epochs=4)
-
     save_model(model, path)
-    img_paths=[('D:/wsl/17_Color.png', 'D:/wsl/17_Depth.raw')]
+    img_paths = [('D:/wsl/17_Color.png', 'D:/wsl/17_Depth.raw')]
     [(rgb, d)] = load_data(img_paths)
-    rgb ,d = resize_normalize(rgb, d, max_depth=80000)
+    rgb, d = resize_normalize(rgb, d, max_depth=80000)
     test_model(rgb, d, model)
     return None
 
@@ -38,10 +33,8 @@ def save_to_tflite(model):
     return None
 
 
-
-
-
-def configGPU():
+def config_gpu():
+    # Configures GPU memory to avoid some common issues with cuda
     if tf.config.list_physical_devices('GPU'):
         physical_devices = tf.config.list_physical_devices('GPU')
         tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
@@ -51,7 +44,7 @@ def configGPU():
 
 
 def test_model(rgb, d, model):
-    # Takes a list of [(rgb, d)] in rgb_d
+    # Takes a rgb image with corresponding ground truth and the model to test
     print("Testing model...")
     rgb = tf.expand_dims(rgb, 0)  # Convert from [h, w, c] to [1, h, w, c]
     d_est = model.predict(rgb)
@@ -61,13 +54,19 @@ def test_model(rgb, d, model):
 
 
 def save_model(model, path):
+    """
+    Saves the model input to the path input
+    :param model: 
+    :param path:
+    :return:
+    """
     tf.saved_model.save(model, path)
     print('Model saved to:', path)
     return None
 
 
 def load_model(model_path):
-    model = tf.keras.models.load_model(model_path, compile=False) # TODO Add the compilation arguments here instead
+    model = tf.keras.models.load_model(model_path, compile=False)
     optimizer = tf.keras.optimizers.SGD(learning_rate=0.1)
     model.compile(optimizer=optimizer,
                   loss=wcel_loss,
