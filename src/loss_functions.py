@@ -176,23 +176,27 @@ def normalize_vectors(groups):
     return tf.divide(groups, lengths)
 
 
-def depth_to_xyz(depth, focal_lengths, input_shape=(224, 224)):
+def depth_to_xyz(depth, focal_lengths, input_shape=(1, 224, 224)):
     """
     Convert depth map to a cartesian point cloud map
 
     :param depth: a depth map tensor of shape [b, h, w]
     :param focal_lengths: a tuple of focal lengths as (fx, fy)
-    :param input_shape: a tuple of input shape as (h, w)
+    :param input_shape: a tuple of input shape as (b, h, w)
     :return: a tensor of points in cartesian 3-space [b, h, w, 3]
     """
-    x = tf.constant([i - (input_shape[0] // 2) for i in range(input_shape[0])])
-    x = tf.tile(tf.expand_dims(x, axis=0), (input_shape[1], 1))
+    x = tf.constant([i - (input_shape[1] // 2) for i in range(input_shape[1])])  # [h,] int32
+    x = tf.tile(tf.expand_dims(x, axis=0), (input_shape[2], 1))  # [h, w] int32
+    x = tf.cast(x, tf.float32)  # [h, w] float32
+    x = tf.expand_dims(x, axis=0)  # [1, h, w] float32
     x = tf.multiply(x, depth)
     x = tf.divide(x, focal_lengths[0])
 
-    y = tf.constant([i - (input_shape[1] // 2) for i in range(input_shape[1])])
-    y = tf.tile(tf.expand_dims(y, axis=0), (input_shape[0], 1))   # [b, w, h]
-    y = tf.transpose(y, perm=(1, 0))  # [b, h, w]
+    y = tf.constant([i - (input_shape[2] // 2) for i in range(input_shape[2])])
+    y = tf.tile(tf.expand_dims(y, axis=0), (input_shape[1], 1))   # [w, h]
+    y = tf.transpose(y, perm=(1, 0))  # [h, w]
+    y = tf.cast(y, tf.float32)
+    y = tf.expand_dims(y, axis=0)  # [1, h, w]
     y = tf.multiply(y, depth)    # [b, h, w]
     y = tf.divide(y, focal_lengths[1])
 
