@@ -28,3 +28,7 @@ cfg["model_bottleneck_channels"] = cfg["decoder_filters"][0]
 cfg["wcel_weights"] = [[np.exp(-0.2 * (i - j) ** 2) for i in range(cfg["depth_bins"])]
                        for j in np.arange(cfg["depth_bins"])]
 cfg["vnl_sample_ratio"] = 0.15
+cfg["vnl_discard_ratio"] = 0.25
+
+# Dataset configs
+cfg["data_focal_length"] = (1.0, 1.0)  # (focal_x, focal_y)
