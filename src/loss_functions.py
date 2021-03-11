@@ -1,6 +1,5 @@
 import tensorflow as tf
-import numpy as np
-from src.image_utils import depth_to_bins
+from src.image_utils import depth_to_bins, bins_to_depth
 from src.config import cfg
 
 
@@ -9,7 +8,7 @@ def wcel_loss(gt, pred):
     # loss of the predicted logits and the ground truth depth logits
     # param pred: [[b, h, w, 150], [b, h, w, 150]]
     depth_bins = cfg["depth_bins"]
-    [pred_logits, pred_softmax] = pred
+    pred_softmax = pred
     gt_bins = depth_to_bins(gt)
     pred_logsoft = tf.math.log(pred_softmax)
     pred_logsoft = tf.transpose(pred_logsoft, perm=[0, 2, 1, 3])  # [b, h, w, 150] -> [b, w, h, 150]
@@ -27,13 +26,28 @@ def wcel_loss(gt, pred):
 
 def virtual_normal_loss(gt, pred):
     """
+    Calculates the virtual normal loss between gt d image and pred depth bins
 
-    :param gt:
-    :param pred:
-    :return:
+    :param gt: d ground truth image of shape (b, h, w)
+    :param pred: predicted softmax depth bins from the neural net of shape (b, h, w, c)
+    :return: virtual normal loss
     """
-
-    return None
+    gt_xyz = depth_to_xyz(gt, (0.5, 0.5), input_shape=gt.shape)
+    pred_xyz = depth_to_xyz(bins_to_depth(pred), (0.5, 0.5), input_shape=pred.shape)
+    gt_p_groups, pred_p_groups = generate_random_p_groups(gt_xyz, pred_xyz,
+                                                          shape=gt_xyz.shape,
+                                                          sample_ratio=cfg["vnl_sample_ratio"])
+    valid_mask = tf.logical_not(generate_invalid_mask(gt_p_groups))
+    gt_normals = generate_unit_normals(gt_p_groups)
+    pred_normals = generate_unit_normals(pred_p_groups)
+    normals_loss = tf.subtract(gt_normals, pred_normals)  # [b, n, 3xyz]
+    normals_loss = tf.multiply(normals_loss, tf.cast(valid_mask, tf.float32))
+    loss = tf.math.sqrt(tf.reduce_sum(tf.math.square(normals_loss), axis=-1))  # [b, n]
+    loss = tf.reshape(loss, (-1,))
+    loss = tf.sort(loss)
+    loss = loss[tf.cast(loss.shape[0]*0.25, tf.int32):]
+    loss = tf.reduce_mean(loss)
+    return loss
 
 
 def generate_random_p_groups(xyz_1, xyz_2, shape=(224, 224, 3), sample_ratio=0.15):
@@ -85,10 +99,17 @@ def generate_p_groups(xyz, indices, shape=(224, 224, 3), groups_dimension=2):
     return tf.concat((p1, p2, p3), groups_dimension)
 
 
-def generate_normals(groups):
-    valid_mask = tf.logical_not(generate_invalid_mask(groups))
-    norms = normalize_vectors(groups)
-    return None
+def generate_unit_normals(groups):
+    """
+    Generates unit normals from groups vector groups
+
+    :param groups: groups of three vectors in shape (b, n, 3points, 3xyz)
+    :return: unit normals for the surfaces spanned by groups vectors, shape (b, n, 3xyz)
+    """
+    diffs = create_diff_vectors(groups)
+    normals = tf.linalg.cross(diffs[:, :, 0, :], diffs[:, :, 1, :])
+    unit_normals = normalize_vectors(normals)
+    return unit_normals
 
 
 def generate_invalid_mask(groups, near_margin=0.05, angle_margin=0.876, z_margin=0.01):
@@ -99,14 +120,14 @@ def generate_invalid_mask(groups, near_margin=0.05, angle_margin=0.876, z_margin
 
     Condition 2: no point in the group can have a z-value less than z_margin
 
-    Condition 3: no angle in the triangle defined by the three points in the group
-    can be smaller than angle_margin
+    Condition 3: no intermediate angle in the triangle defined by the three
+    points in the group can be smaller than angle_margin
 
-    :param groups:
-    :param near_margin:
-    :param angle_margin:
-    :param z_margin:
-    :return:
+    :param groups: vector groups for ground truth points
+    :param near_margin: the near margin where points are discarded
+    :param angle_margin: the angle margin for points
+    :param z_margin: the margin where if points have a lower z-value, are discarded
+    :return: a true/false boolean array of shape (b, n)
     """
     diffs = create_diff_vectors(groups)  # [b, n, 3points, 3xyz] float32
 
@@ -149,7 +170,9 @@ def normalize_vectors(groups):
     :param groups: a tensor with shape (b, n, 3points, 3xyz)
     :return: a tensor with normalized vectors (b, n, 3points, 3xyz)
     """
-    lengths = tf.math.sqrt(tf.reduce_sum(tf.math.square(groups), axis=-1))
+    lengths = tf.math.sqrt(tf.reduce_sum(tf.math.square(groups), axis=-1))  # [b, n, 3points]
+    zero_mask = tf.expand_dims(tf.equal(lengths, 0.), -1)
+    lengths = tf.add(lengths, tf.cast(zero_mask, tf.float32))
     return tf.divide(groups, lengths)
 
 
@@ -180,9 +203,3 @@ def depth_to_xyz(depth, focal_lengths, input_shape=(224, 224)):
     z = tf.expand_dims(z, -1)     # [b, h, w, 1]
     p = tf.concat((x, y, z), -1)  # [b, h, w, 3]
     return p
-
-
-def custom_loss(label, pred):
-    print(label.shape)
-    print(pred.shape)
-    return 1.
