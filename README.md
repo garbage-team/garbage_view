@@ -1,6 +1,8 @@
 # garbage_view
 Depth estimation for garbage containers in an industrial setting
 
+Using the virtual normal loss by https://github.com/YvanYin/VNL_Monocular_Depth_Prediction
+
 ## Authors
 Master's Thesis Project 2021 by
 
