@@ -93,8 +93,9 @@ def bins_to_depth(depth_bins):
     bin_interval = cfg["bin_interval"]
     borders = np.array([np.log10(cfg["min_depth"]) + (bin_interval * (i + 0.5)) for i in range(cfg["depth_bins"])])
     depth = depth_bins * borders
-    depth = tf.reduce_sum(depth, axis=3, keepdims=True)
+    depth = tf.reduce_sum(depth, axis=3, keepdims=False)
     depth = 10 ** depth
+
     return depth
 
 

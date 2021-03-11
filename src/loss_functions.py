@@ -33,11 +33,14 @@ def virtual_normal_loss(gt, pred):
     :return: virtual normal loss
     """
     gt_xyz = depth_to_xyz(gt, (0.5, 0.5), input_shape=gt.shape)
-    pred_xyz = depth_to_xyz(bins_to_depth(pred), (0.5, 0.5), input_shape=pred.shape)
+    pred_depth = bins_to_depth(pred)
+    pred_xyz = depth_to_xyz(pred_depth, (0.5, 0.5),
+                            input_shape=pred.shape)
     gt_p_groups, pred_p_groups = generate_random_p_groups(gt_xyz, pred_xyz,
                                                           shape=gt_xyz.shape,
                                                           sample_ratio=cfg["vnl_sample_ratio"])
     valid_mask = tf.logical_not(generate_invalid_mask(gt_p_groups))
+    valid_mask = tf.expand_dims(valid_mask, axis=-1)
     gt_normals = generate_unit_normals(gt_p_groups)
     pred_normals = generate_unit_normals(pred_p_groups)
     normals_loss = tf.subtract(gt_normals, pred_normals)  # [b, n, 3xyz]
@@ -66,7 +69,7 @@ def generate_random_p_groups(xyz_1, xyz_2, shape=(224, 224, 3), sample_ratio=0.1
     :param sample_ratio: the ratio of sampled points, defaults to 0.15
     :return: two points groups of respective points from the point maps, (groups_1, groups_2)
     """
-    (height, width, channels) = shape
+    (batch, height, width, channels) = shape
     total_indices = height * width
     sampled_indices = tf.cast(tf.math.round(total_indices * sample_ratio), tf.dtypes.int32)
     p1_i = tf.random.uniform((sampled_indices, 1), minval=0, maxval=total_indices,
@@ -91,7 +94,7 @@ def generate_p_groups(xyz, indices, shape=(224, 224, 3), groups_dimension=2):
     :param groups_dimension: the dimension in which the groups are indexed
     :return: a tensor with the points groups for the point map of shape (B, n, 3, 3)
     """
-    (height, width, channels) = shape
+    (batch, height, width, channels) = shape
     xyz = tf.reshape(xyz, (-1, height*width, channels))
     p1 = tf.expand_dims(tf.gather(xyz, indices[:, 0], axis=1), groups_dimension)
     p2 = tf.expand_dims(tf.gather(xyz, indices[:, 1], axis=1), groups_dimension)
@@ -171,9 +174,9 @@ def normalize_vectors(groups):
     :return: a tensor with normalized vectors (b, n, 3points, 3xyz)
     """
     lengths = tf.math.sqrt(tf.reduce_sum(tf.math.square(groups), axis=-1))  # [b, n, 3points]
-    zero_mask = tf.expand_dims(tf.equal(lengths, 0.), -1)
-    lengths = tf.add(lengths, tf.cast(zero_mask, tf.float32))
-    return tf.divide(groups, lengths)
+    zero_mask = tf.equal(lengths, 0.)  # [b, n, 3points]
+    lengths = tf.add(lengths, tf.cast(zero_mask, tf.float32))  # [b, n, 3points]
+    return tf.divide(groups, tf.expand_dims(lengths, axis=-1))
 
 
 def depth_to_xyz(depth, focal_lengths, input_shape=(1, 224, 224)):
