@@ -35,6 +35,10 @@ def virtual_normal_loss(gt, pred):
     """
     if len(gt.shape) == 4:
         gt = gt[:, :, :, 0]
+
+    if tf.reduce_any(tf.math.is_nan(pred)):
+        tf.print("NaN present in input to VNL")
+
     gt_xyz = depth_to_xyz(gt, cfg["data_focal_length"], input_shape=gt.shape)
     pred_depth = bins_to_depth(pred)
     pred_xyz = depth_to_xyz(pred_depth, cfg["data_focal_length"],
@@ -48,7 +52,7 @@ def virtual_normal_loss(gt, pred):
     pred_normals = generate_unit_normals(pred_p_groups)
     normals_loss = tf.subtract(gt_normals, pred_normals)  # [b, n, 3xyz]
     normals_loss = tf.multiply(normals_loss, tf.cast(valid_mask, tf.float32))
-    loss = tf.math.sqrt(tf.reduce_sum(tf.math.square(normals_loss), axis=-1))  # [b, n]
+    loss = tf.math.sqrt(tf.reduce_sum(tf.math.square(normals_loss), axis=-1) + 1.0e-10)  # [b, n]
     loss = tf.reshape(loss, (-1,))
     loss = tf.reduce_mean(loss)
     return loss

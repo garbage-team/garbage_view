@@ -8,11 +8,11 @@ from src.data_loader import load_nyudv2, load_data
 
 def main():
     config_gpu()
-    path = 'D:/wsl/modelv3'
+    path = 'D:/wsl/model_custom_loss'
     model = sm_model()
-    optimizer = tf.keras.optimizers.SGD(learning_rate=0.01)
+    optimizer = tf.keras.optimizers.SGD(learning_rate=0.01, momentum=0.9, clipnorm=1.0)
     model.compile(optimizer=optimizer,
-                  loss=wcel_loss,
+                  loss=custom_loss,
                   metrics=['accuracy'])
     ds = load_nyudv2(shuffle=True, batch=4)
     model.fit(ds, epochs=5)
@@ -26,7 +26,7 @@ def main():
 
 def custom_loss(gt, pred):
     loss_wcel = wcel_loss(gt, pred)
-    loss_vnl = virtual_normal_loss(gt, pred)
+    loss_vnl = 6 * virtual_normal_loss(gt, pred)
     return loss_wcel + loss_vnl
 
 
