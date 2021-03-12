@@ -6,20 +6,21 @@ from src.config import cfg
 def wcel_loss(gt, pred):
     # Weighted cross entropy loss function for determining the
     # loss of the predicted logits and the ground truth depth logits
-    # param pred: [[b, h, w, 150], [b, h, w, 150]]
+    # param pred: [b, h, w, 150]
+    if len(gt.shape) == 4:
+        gt = gt[:, :, :, 0]
     depth_bins = cfg["depth_bins"]
     pred_softmax = pred
     gt_bins = depth_to_bins(gt)
     pred_logsoft = tf.math.log(pred_softmax)
-    pred_logsoft = tf.transpose(pred_logsoft, perm=[0, 2, 1, 3])  # [b, h, w, 150] -> [b, w, h, 150]
     valid_mask = tf.logical_not(tf.equal(gt_bins, depth_bins + 1))
     one_hot = tf.one_hot(gt_bins, depth_bins)  # [b, h, w, 1] -> [b, h, w, 150]
 
     weights = cfg["wcel_weights"]
     weights = tf.linalg.matmul(one_hot, weights)  # [b, h, w, 150] x [150, 150] -> [b, h, w, 150]
     pred_losses = tf.math.multiply(weights, pred_logsoft)
-
     valid_pixels = tf.reduce_sum(tf.cast(valid_mask, tf.dtypes.float32))
+
     loss = -1. * tf.reduce_sum(pred_losses) / valid_pixels
     return loss
 
@@ -32,10 +33,12 @@ def virtual_normal_loss(gt, pred):
     :param pred: predicted softmax depth bins from the neural net of shape (b, h, w, c)
     :return: virtual normal loss
     """
+    if len(gt.shape) == 4:
+        gt = gt[:, :, :, 0]
     gt_xyz = depth_to_xyz(gt, cfg["data_focal_length"], input_shape=gt.shape)
     pred_depth = bins_to_depth(pred)
     pred_xyz = depth_to_xyz(pred_depth, cfg["data_focal_length"],
-                            input_shape=pred.shape)
+                            input_shape=pred_depth.shape)
     gt_p_groups, pred_p_groups = generate_random_p_groups(gt_xyz, pred_xyz,
                                                           shape=gt_xyz.shape,
                                                           sample_ratio=cfg["vnl_sample_ratio"])
@@ -47,8 +50,6 @@ def virtual_normal_loss(gt, pred):
     normals_loss = tf.multiply(normals_loss, tf.cast(valid_mask, tf.float32))
     loss = tf.math.sqrt(tf.reduce_sum(tf.math.square(normals_loss), axis=-1))  # [b, n]
     loss = tf.reshape(loss, (-1,))
-    loss = tf.sort(loss)
-    loss = loss[tf.cast(loss.shape[0]*cfg["vnl_discard_ratio"], tf.int32):]
     loss = tf.reduce_mean(loss)
     return loss
 

@@ -2,22 +2,32 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 from src.model import sm_model
 from src.image_utils import display_images, resize_normalize, bins_to_depth
-from src.loss_functions import wcel_loss
+from src.loss_functions import wcel_loss, virtual_normal_loss
 from src.data_loader import load_nyudv2, load_data
 
 
 def main():
     config_gpu()
-    path = 'D:/wsl/modelv2_1_wcel'
-    model = load_model(path)
-    ds = load_nyudv2(shuffle=False, batch=4)
-    model.fit(ds, epochs=4)
+    path = 'D:/wsl/modelv3'
+    model = sm_model()
+    optimizer = tf.keras.optimizers.SGD(learning_rate=0.01)
+    model.compile(optimizer=optimizer,
+                  loss=wcel_loss,
+                  metrics=['accuracy'])
+    ds = load_nyudv2(shuffle=True, batch=4)
+    model.fit(ds, epochs=5)
     save_model(model, path)
     img_paths = [('D:/wsl/17_Color.png', 'D:/wsl/17_Depth.raw')]
     [(rgb, d)] = load_data(img_paths)
     rgb, d = resize_normalize(rgb, d, max_depth=80000)
     test_model(rgb, d, model)
     return None
+
+
+def custom_loss(gt, pred):
+    loss_wcel = wcel_loss(gt, pred)
+    loss_vnl = virtual_normal_loss(gt, pred)
+    return loss_wcel + loss_vnl
 
 
 def save_to_tflite(model):

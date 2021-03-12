@@ -3,7 +3,7 @@ import pathlib
 import numpy as np
 import struct
 import cv2
-import image_utils
+import src.image_utils
 import tensorflow_datasets as tfds
 
 
@@ -82,21 +82,14 @@ def ds_generator(data, shape):
 
 
 def load_nyudv2(batch=32,shuffle=True,ds_path='D:/wsl/tensorflow_datasets'):
-    nyudv2, info = tfds.load('nyu_depth_v2', split='train', with_info=True, shuffle_files=True, as_supervised=True,
+    nyudv2, info = tfds.load('nyu_depth_v2', split='train', with_info=True, shuffle_files=shuffle, as_supervised=True,
                              data_dir=ds_path)
     nyudv2 = nyudv2.map(
-        image_utils.resize_normalize, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        src.image_utils.resize_normalize, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     nyudv2 = nyudv2.cache()
 
-    if batch and shuffle:
-        shuffle_size = int(5 * 47584 / batch) # Replace number with a num_elements type of value
-        nyudv2 = nyudv2.shuffle(shuffle_size)  # check that this is the correct way of calling num_examples
+    if batch:
         nyudv2 = nyudv2.batch(batch)
-    if batch and not shuffle:
-        nyudv2 = nyudv2.batch(batch)
-    if shuffle and not batch:
-        shuffle_size = 5*47584  # Replace number with a num_elements type of value
-        nyudv2 = nyudv2.shuffle(shuffle_size)  # check that this is the correct way of calling num_examples
 
     nyudv2 = nyudv2.prefetch(tf.data.experimental.AUTOTUNE)
 

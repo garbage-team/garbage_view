@@ -99,7 +99,7 @@ def bins_to_depth(depth_bins):
                           dtype=tf.float32)  # [c]
     depth = tf.reduce_sum(tf.multiply(depth_bins, borders),
                           axis=-1, keepdims=False)  # [b, h, w, c] * [c] -> [b, h, w, c] -> [b, h, w]
-    depth = tf.math.pow(10, depth)
+    depth = tf.math.pow(10., depth)
     return depth
 
 
