@@ -15,7 +15,7 @@ def main():
                   loss=custom_loss,
                   metrics=['accuracy'])
     ds = load_nyudv2(shuffle=True, batch=4)
-    model.fit(ds, epochs=5)
+    model.fit(ds, epochs=1)
     save_model(model, path)
     img_paths = [('D:/wsl/17_Color.png', 'D:/wsl/17_Depth.raw')]
     [(rgb, d)] = load_data(img_paths)

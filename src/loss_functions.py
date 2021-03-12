@@ -18,7 +18,7 @@ def wcel_loss(gt, pred):
 
     weights = cfg["wcel_weights"]
     weights = tf.linalg.matmul(one_hot, weights)  # [b, h, w, 150] x [150, 150] -> [b, h, w, 150]
-    pred_losses = tf.math.multiply(weights, pred_logsoft)
+    pred_losses = tf.math.multiply_no_nan(weights, pred_logsoft)
     valid_pixels = tf.reduce_sum(tf.cast(valid_mask, tf.dtypes.float32))
 
     loss = -1. * tf.reduce_sum(pred_losses) / valid_pixels
