@@ -86,26 +86,35 @@ def display_overlayed(rgb, d):
 
 
 def bins_to_depth(depth_bins):
-    # A function that takes the predicted depth bins from the encoder-decoder
-    # and returns a numeric depth value for all pixels
-    # Depth bins should be in the order of [b, h, w, c]
-    # TODO refactor to global variables
-    bin_interval = cfg["bin_interval"]
-    borders = np.array([np.log10(cfg["min_depth"]) + (bin_interval * (i + 0.5)) for i in range(cfg["depth_bins"])])
-    depth = depth_bins * borders
-    depth = tf.reduce_sum(depth, axis=3, keepdims=False)
-    depth = 10 ** depth
+    """
+    Converts a bin tensor into a depth image
 
+    :param depth_bins: the depth bins in one_hot encoding, shape (b, h, w, c)
+    the depth bins can also be passed as softmax bins of shape (b, h, w, c)
+    :return: a depth image of shape (b, h, w) with type tf.float32
+    """
+    bin_interval = cfg["bin_interval"]
+    # the borders variable here holds the depth for each specific value of the one hot encoded bins
+    borders = tf.constant([np.log10(cfg["min_depth"]) + (bin_interval * (i + 0.5)) for i in range(cfg["depth_bins"])],
+                          dtype=tf.float32)  # [c]
+    depth = tf.reduce_sum(tf.multiply(depth_bins, borders),
+                          axis=-1, keepdims=False)  # [b, h, w, c] * [c] -> [b, h, w, c] -> [b, h, w]
+    depth = tf.math.pow(10, depth)
     return depth
 
 
 def depth_to_bins(depth):
-    # A function that takes a depth and evaluates the correct bins
-    # Depth should be in shape [b, h, w, 1] or [b, h, w]
+    """
+    Converts a depth channel of an image into a bins tensor
+
+    :param depth: a depth image, possibly containing a channel dimension
+    shape either (b, h, w) or (b, h, w, 1)
+    :return: a bin index tensor of shape (b, h, w) of type tf.int32
+    """
     if len(depth.shape) >= 4:
         depth = depth[:, :, :, 0]
     bin_interval = cfg["bin_interval"]
-    valid_mask = tf.math.greater_equal(depth, cfg["min_depth"])
+    valid_mask = tf.math.greater_equal(depth, tf.constant(cfg["min_depth"]))
     depth = tf.math.add(depth, -cfg["min_depth"])
     depth = tf.keras.activations.relu(depth, max_value=cfg["max_depth"]-cfg["min_depth"])
     depth = tf.math.add(depth, cfg["min_depth"])
