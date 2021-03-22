@@ -10,7 +10,10 @@ def encoder_decoder():
     rgb = inputs
 
     # Downsampling, or extracting features
-    encoder_stack = encoder()(rgb)
+    encoder_model = encoder()
+    for layer in encoder_model.layers:
+        layer.trainable = False
+    encoder_stack = encoder_model(rgb)
     bottle_neck = encoder_stack[-1]
 
     # reverse the order of intermediates to get them in the right order
