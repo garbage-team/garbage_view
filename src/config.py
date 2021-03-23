@@ -13,7 +13,7 @@ cfg["min_depth"] = 0.25
 cfg["bin_interval"] = (np.log10(cfg["max_depth"]) - np.log10(cfg["min_depth"])) / cfg["depth_bins"]
 
 # Model encoder/decoder config
-cfg["decoder_filters"] = [512, 256, 128, 96, 64]
+cfg["decoder_filters"] = [512, 256, 128, 96, 64] # 512, 256, 128, 96, 64
 cfg["encoder_filters"] = [96, 144, 192, 576]
 cfg["encoder_block_names"] = [
             "block_1_expand_relu",   # 112x112

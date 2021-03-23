@@ -8,9 +8,10 @@ from src.data_loader import load_nyudv2, load_data
 
 def main():
     config_gpu()
-    path = 'D:/wsl/model_custom_loss'
+    path = 'D:/wsl/model_NaN_debug'
     model = sm_model()
-    optimizer = tf.keras.optimizers.SGD(learning_rate=0.01, momentum=0.9, clipnorm=1.0)
+    model.summary()
+    optimizer = tf.keras.optimizers.SGD(learning_rate=0.0005, momentum=0.9)
     model.compile(optimizer=optimizer,
                   loss=custom_loss,
                   metrics=['accuracy'])
