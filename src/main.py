@@ -1,7 +1,7 @@
 import tensorflow as tf
 import tensorflow_datasets as tfds
 from src.model import sm_model
-from src.image_utils import display_images, bins_to_depth
+from src.image_utils import display_images, resize_normalize, bins_to_depth
 from src.loss_functions import wcel_loss, virtual_normal_loss
 from src.data_loader import load_nyudv2, load_data
 
@@ -16,7 +16,7 @@ def main():
                   loss=custom_loss,
                   metrics=['accuracy'])
     ds = load_nyudv2(shuffle=True, batch=4)
-    model.fit(ds, epochs=1)
+    model.fit(ds, epochs=2)
     save_model(model, path)
     img_paths = [('D:/wsl/17_Color.png', 'D:/wsl/17_Depth.raw')]
     [(rgb, d)] = load_data(img_paths)
