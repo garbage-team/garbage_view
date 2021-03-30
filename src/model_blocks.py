@@ -33,11 +33,13 @@ def dilated_residual(filters_in: int, filters_out: int):
     x = tf.keras.layers.Conv2D(filters_out, (1, 1), use_bias=False)(inputs)
     residual = x
     x = tf.keras.layers.Conv2D(filters_out, (3, 3),
-                               padding='same', dilation_rate=2, use_bias=True)(x)
+                               padding='same', dilation_rate=2, use_bias=True,
+                               kernel_regularizer='l2')(x)
     x = tf.keras.layers.BatchNormalization(momentum=0.5)(x)
     x = tf.keras.layers.ReLU()(x)
     x = tf.keras.layers.Conv2D(filters_out, (3, 3),
-                               padding='same', dilation_rate=2, use_bias=False)(x)
+                               padding='same', dilation_rate=2, use_bias=False,
+                               kernel_regularizer='l2')(x)
     x += residual
     out = tf.keras.layers.ReLU()(x)
 
@@ -51,7 +53,8 @@ def prediction_layer(filters_in: int, depth_bins: int):
     inputs = tf.keras.Input(shape=(None, None, filters_in))
     x = tf.keras.layers.SpatialDropout2D(0.1)(inputs)
     x = tf.keras.layers.Conv2D(depth_bins, 3, strides=1,
-                               padding='same', use_bias=True)(x)
+                               padding='same', use_bias=True,
+                               kernel_regularizer='l2')(x)
     x_softmax = tf.keras.layers.Softmax()(x)
     return tf.keras.Model(inputs=inputs, outputs=[x, x_softmax])
 
@@ -62,7 +65,8 @@ def decode_layer(ll_filters_in: int, hl_filters_in: int, filters_out: int):
     x = adaptive_merge(ll_filters_in, hl_filters_in, hl_filters_in)((ll_in, hl_in))
     x = dilated_residual(hl_filters_in, hl_filters_in)(x)
     x = tf.keras.layers.Conv2DTranspose(filters_out, 3, strides=2,
-                                        padding='same', use_bias=False)(x)
+                                        padding='same', use_bias=False,
+                                        kernel_regularizer='l2')(x)
     x = tf.keras.layers.BatchNormalization()(x)
     out = tf.keras.layers.ReLU()(x)
     return tf.keras.Model(inputs=[ll_in, hl_in], outputs=out)

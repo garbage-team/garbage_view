@@ -85,7 +85,7 @@ def load_nyudv2(batch=32,shuffle=True,ds_path='D:/wsl/tensorflow_datasets'):
     nyudv2, info = tfds.load('nyu_depth_v2', split='train', with_info=True, shuffle_files=shuffle, as_supervised=True,
                              data_dir=ds_path)
     nyudv2 = nyudv2.map(
-        src.image_utils.resize_normalize, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        src.image_utils.img_augmentation, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     nyudv2 = nyudv2.cache()
 
     if batch:

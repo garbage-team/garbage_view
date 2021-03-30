@@ -1,14 +1,14 @@
 import tensorflow as tf
 import tensorflow_datasets as tfds
 from src.model import sm_model
-from src.image_utils import display_images, resize_normalize, bins_to_depth
+from src.image_utils import display_images, bins_to_depth
 from src.loss_functions import wcel_loss, virtual_normal_loss
 from src.data_loader import load_nyudv2, load_data
 
 
 def main():
     config_gpu()
-    path = 'D:/wsl/model_NaN_debug'
+    path = 'D:/wsl/model_quarter'
     model = sm_model()
     model.summary()
     optimizer = tf.keras.optimizers.SGD(learning_rate=0.0005, momentum=0.9)
@@ -77,11 +77,11 @@ def save_model(model, path):
 
 
 def load_model(model_path):
-    model = tf.keras.models.load_model(model_path, compile=False)
-    optimizer = tf.keras.optimizers.SGD(learning_rate=0.1)
-    model.compile(optimizer=optimizer,
-                  loss=wcel_loss,
-                  metrics=['accuracy'])
+    model = tf.keras.models.load_model(model_path, compile=False) # TODO Add the correct settings to the optimizer
+    # optimizer = tf.keras.optimizers.SGD(learning_rate=0.1)
+    # model.compile(optimizer=optimizer,
+    #               loss=wcel_loss,
+    #               metrics=['accuracy'])
     print("Loaded existing model successfully!")
     model.summary()
     return model

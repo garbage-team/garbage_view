@@ -2,21 +2,55 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
+import random
 from src.config import cfg
 
 
-def resize_normalize(rgb, d, max_depth=80., model_max_output=80.):
+
+def img_augmentation(rgb, d, img_size=224):
     # Normalizes and resize the tf tensors of rgb and d
+
     d = tf.expand_dims(d, -1)
-    img_size = 224
+    flip_case = random.randint(0, 3)
+    # if case == 0, does no augmentation of that kind
+    # Flip horizontally
+    if flip_case == 1:
+        rgb = tf.image.flip_left_right(rgb)
+        d = tf.image.flip_left_right(d)
+    # Flip vertically
+    if flip_case == 2:
+        rgb = tf.image.flip_up_down(rgb)
+        d = tf.image.flip_up_down(d)
+    # Flip horizontally and vertically
+    if flip_case == 3:
+        rgb = tf.image.flip_up_down(rgb)
+        rgb = tf.image.flip_left_right(rgb)
+        d = tf.image.flip_up_down(d)
+        d = tf.image.flip_left_right(d)
+    height = rgb.shape[0]
+    width = rgb.shape[1]
+    new_height = random.randint(img_size, height)
+    new_width = random.randint(img_size, width)
+    offset_height = random.randint(0, height - new_height)
+    offset_width = random.randint(0, width - new_width)
+
+    rgb = tf.image.crop_to_bounding_box(rgb, offset_height, offset_width, new_height, new_width)
+    d = tf.image.crop_to_bounding_box(d, offset_height, offset_width, new_height, new_width)
+
+    rgb, d = resize_normalize(rgb, d)
+
+    return rgb, d
+
+
+def resize_normalize(rgb, d, max_depth=80., model_max_output=80., img_size=224):
     resize = tf.keras.Sequential([
         tf.keras.layers.experimental.preprocessing.Resizing(img_size, img_size)
     ])
     rgb = resize(rgb)
     d = resize(d)
     d_scale = model_max_output / max_depth
-    return tf.cast(rgb, tf.float32) / 255., tf.cast(d, tf.float32) / d_scale
 
+    return tf.cast(rgb, tf.float32) / 255., tf.cast(d, tf.float32) / d_scale
 
 def normalize_rgb(rgb):
     # Normalizes rgb images from values of 0-255 to values of 0.0-1.0
