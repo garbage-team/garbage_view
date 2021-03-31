@@ -8,15 +8,23 @@ from src.data_loader import load_nyudv2, load_data
 
 def main():
     config_gpu()
-    path = 'D:/wsl/model_quarter'
-    model = sm_model()
+    path = 'D:/wsl/model_augmented'
+    model = load_model(path)
     model.summary()
     optimizer = tf.keras.optimizers.SGD(learning_rate=0.0005, momentum=0.9)
     model.compile(optimizer=optimizer,
                   loss=custom_loss,
                   metrics=['accuracy'])
+    checkpoint_filepath = 'D:/wsl/tmp/model_checkpoint'
+    model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath=checkpoint_filepath,
+        save_weights_only=True,
+        monitor='val_accuracy',
+        mode='max',
+        save_best_only=True)
+
     ds = load_nyudv2(shuffle=True, batch=4)
-    model.fit(ds, epochs=2)
+    model.fit(ds, epochs=8, callbacks=[model_checkpoint_callback])
     save_model(model, path)
     img_paths = [('D:/wsl/17_Color.png', 'D:/wsl/17_Depth.raw')]
     [(rgb, d)] = load_data(img_paths)
