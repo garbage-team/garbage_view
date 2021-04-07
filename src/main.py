@@ -8,28 +8,24 @@ from src.data_loader import load_nyudv2, load_data
 
 def main():
     config_gpu()
-    path = 'D:/wsl/model_augmented'
-    model = load_model(path)
+    model = load_model()
     model.summary()
-    optimizer = tf.keras.optimizers.SGD(learning_rate=0.0005, momentum=0.9)
-    model.compile(optimizer=optimizer,
-                  loss=custom_loss,
-                  metrics=['accuracy'])
+
     checkpoint_filepath = 'D:/wsl/tmp/model_checkpoint'
     model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_filepath,
         save_weights_only=True,
-        monitor='val_accuracy',
-        mode='max',
+        monitor='loss',
+        mode='min',
         save_best_only=True)
 
     ds = load_nyudv2(shuffle=True, batch=4)
-    model.fit(ds, epochs=8, callbacks=[model_checkpoint_callback])
-    save_model(model, path)
+    model.fit(ds, epochs=1, callbacks=[model_checkpoint_callback, tf.keras.callbacks.TerminateOnNaN()])
+    save_model(model, path='D:/wsl/model_augmented')
     img_paths = [('D:/wsl/17_Color.png', 'D:/wsl/17_Depth.raw')]
-    [(rgb, d)] = load_data(img_paths)
-    rgb, d = resize_normalize(rgb, d, max_depth=80000)
-    test_model(rgb, d, model)
+    # [(rgb, d)] = load_data(img_paths)
+    # rgb, d = resize_normalize(rgb, d, max_depth=80000)
+    # test_model(rgb, d, model)
     return None
 
 
@@ -84,14 +80,18 @@ def save_model(model, path):
     return None
 
 
-def load_model(model_path):
+def load_model(model_path='D:/wsl/model_augmented'):
     model = tf.keras.models.load_model(model_path, compile=False) # TODO Add the correct settings to the optimizer
-    # optimizer = tf.keras.optimizers.SGD(learning_rate=0.1)
-    # model.compile(optimizer=optimizer,
-    #               loss=wcel_loss,
-    #               metrics=['accuracy'])
-    print("Loaded existing model successfully!")
     model.summary()
+    model = optimize_compile_model(model)
+    return model
+
+
+def optimize_compile_model(model):
+    optimizer = tf.keras.optimizers.SGD(learning_rate=0.0005, momentum=0.9)
+    model.compile(optimizer=optimizer,
+                  loss=custom_loss,
+                  metrics=['accuracy'])
     return model
 
 
