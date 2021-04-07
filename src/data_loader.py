@@ -19,10 +19,10 @@ def create_paths(base):
     depth_paths = list(base.glob("*.raw"))
     path_doubles = []
     for path in rgb_paths:
-        path_id = path.parts[-1].split("_")[0]
+        path_id = path.parts[-1].split(".")[0]
         d_path = None
         for d in depth_paths:
-            if path_id == d.parts[-1].split("_")[0]:
+            if path_id == d.parts[-1].split(".")[0]:
                 d_path = d
                 break
         path_doubles.append((path, d_path))
@@ -41,10 +41,11 @@ def load_data(path_doubles):
         # read the depth image:
         with open(str(depth), "rb") as file:
             d_img = file.read()
-        d_img = np.array(struct.unpack("H" * 230400, d_img)).reshape((360, 640))
+        d_img = np.array(struct.unpack("H" * 480*640, d_img)).reshape((480, 640, 1))
+        d_img = d_img / 1000
         # read the rgb image:
         rgb_img = cv2.cvtColor(cv2.imread(str(rgb)), cv2.COLOR_BGR2RGB)
-        rgb_img = cv2.resize(rgb_img, (640, 360))
+        rgb_img = cv2.resize(rgb_img, (640, 480))
         # rgb_img = np.array(rgb_img)
         # save the images in list:
         data_doubles.append((rgb_img, d_img))
@@ -62,7 +63,7 @@ def create_dataset(path="../data/", shape=(224, 224)):
         from_generator(lambda: ds_generator(paths, shape),
                        output_types=(tf.float32, tf.float32),
                        output_shapes=([shape[0], shape[1], 3], [shape[0], shape[1], 1]))
-    ds = ds.shuffle(10).batch(10)
+    ds = ds.shuffle(1000).batch(4)
     return ds
 
 
@@ -75,9 +76,7 @@ def ds_generator(data, shape):
         rgb, d = load_data([(rgb_path, d_path)])[0]
         rgb = cv2.resize(rgb, (shape[1], shape[0]), interpolation=cv2.INTER_NEAREST)
         d = cv2.resize(d, (shape[1], shape[0]), interpolation=cv2.INTER_NEAREST)
-        d = np.expand_dims(d, axis=-1)
-        rgb = image_utils.normalize_rgb(rgb)
-        d = image_utils.normalize_d(d, max_depth=4000)
+        rgb, d = image_utils.resize_normalize(rgb, d)
         yield rgb, d
 
 
