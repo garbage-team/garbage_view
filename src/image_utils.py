@@ -47,6 +47,7 @@ def resize_normalize(rgb, d, max_depth=80., model_max_output=80., img_size=224):
         tf.keras.layers.experimental.preprocessing.Resizing(img_size, img_size)
     ])
     rgb = resize(rgb)
+    d = tf.expand_dims(d, -1)
     d = resize(d)
     d_scale = model_max_output / max_depth
 

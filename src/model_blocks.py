@@ -16,9 +16,11 @@ def adaptive_merge(ll_filters_in: int, hl_filters_in: int, filters_out: int):
     # Calculating the output of the model
     x = tf.keras.layers.Concatenate()([low_level, high_level])
     x = tfa.layers.AdaptiveAveragePooling2D((1, 1))(x)
-    x = tf.keras.layers.Conv2D(int(filters_out/8), (1, 1))(x)
+    x = tf.keras.layers.Conv2D(int(filters_out/8), (1, 1),
+                               kernel_regularizer='l2')(x)
     x = tf.keras.layers.ReLU()(x)
-    x = tf.keras.layers.Conv2D(filters_out, (1, 1))(x)
+    x = tf.keras.layers.Conv2D(filters_out, (1, 1),
+                               kernel_regularizer='l2')(x)
     x = tf.keras.activations.sigmoid(x)
     out = x * low_level + high_level
 
@@ -30,7 +32,8 @@ def dilated_residual(filters_in: int, filters_out: int):
     # returns a model that takes an input and returns an output
     inputs = tf.keras.Input(shape=(None, None, filters_in))
 
-    x = tf.keras.layers.Conv2D(filters_out, (1, 1), use_bias=False)(inputs)
+    x = tf.keras.layers.Conv2D(filters_out, (1, 1), use_bias=False,
+                               kernel_regularizer='l2')(inputs)
     residual = x
     x = tf.keras.layers.Conv2D(filters_out, (3, 3),
                                padding='same', dilation_rate=2, use_bias=True,
