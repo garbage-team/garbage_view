@@ -26,6 +26,7 @@ def create_paths(base):
                 d_path = d
                 break
         path_doubles.append((path, d_path))
+        print(path_doubles)
     return path_doubles
 
 
@@ -76,7 +77,7 @@ def ds_generator(data, shape):
         rgb, d = load_data([(rgb_path, d_path)])[0]
         rgb = cv2.resize(rgb, (shape[1], shape[0]), interpolation=cv2.INTER_NEAREST)
         d = cv2.resize(d, (shape[1], shape[0]), interpolation=cv2.INTER_NEAREST)
-        rgb, d = image_utils.resize_normalize(rgb, d)
+        rgb, d = src.image_utils.resize_normalize(rgb, d)
         yield rgb, d
 
 
