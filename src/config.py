@@ -33,6 +33,6 @@ cfg["vnl_discard_ratio"] = 0.25
 # Dataset configs
 cfg["data_focal_length"] = (1.0, 1.0)  # (focal_x, focal_y)
 cfg["nyu_depth_path"] = 'D:/wsl/tensorflow_datasets'
-cfg["tflite_model_path"] = "../model/lite_model_04-13.tflite"
+cfg["tflite_model_path"] = "lite_model_04-13.tflite"
 cfg["webcam_h_fov"] = 82.1
 cfg["webcam_v_fov"] = 52.2
