@@ -29,7 +29,10 @@ def main():
     pred_depth = bins_to_depth(output_data)
     toc = time()
     print("Inference time: " + str(toc - tic))
-    display_rgbd([input_data[0], pred_depth])
+    volume=depth_volume(pred_depth[0])
+    print("Volume = " + str(volume))
+    pred_img = cv2.rectangle(pred_depth[0], (38, 32), (38+146, 32+124), (0, 0, 255), 1)
+    display_rgbd([input_data[0], pred_img])
 
 
 def bins_to_depth(depth_bins):
@@ -61,6 +64,8 @@ def display_rgbd(images):
         plt.imshow(images[i])
         plt.axis('off')
     plt.show()
+
+
 
 
 if __name__ == '__main__':
