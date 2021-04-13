@@ -16,7 +16,7 @@ def depth_volume(depth):
     p = depth_to_xyz(depth)
     p = np.reshape(p, (224*224, 3))
     triangles = Delaunay(p[:, 0:2])
-    print(triangles.simplicies.shape)
+    print(triangles.simplices.shape)
     print("Volume = " + str(volume))
     return volume
 
