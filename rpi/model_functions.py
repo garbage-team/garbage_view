@@ -2,16 +2,45 @@ import cv2
 import numpy as np
 import tflite_runtime.interpreter as tflite
 import matplotlib.pyplot as plt
+from scipy.spatial import Delaunay
 from time import time
+from math import pi
 from src.config import cfg
 
 
 def depth_volume(depth):
-    r = (38, 32, 146, 124) # TODO replace with points from identified borders
-    depth = depth[int(r[1]):int(r[1] + r[3]), int(r[0]):int(r[0] + r[2])]
-    volume = np.sum(depth)/np.sum(depth.size)
+    #r = (38, 32, 146, 124)
+    # TODO replace with points from identified borders
+    # depth = depth[int(r[1]):int(r[1] + r[3]), int(r[0]):int(r[0] + r[2])]
+
+    p = depth_to_xyz(depth)
+    p = np.reshape(p, 224*224, 3)
+    triangles = Delaunay(p[:, 0:2])
+    print(triangles.simplicies.shape)
     print("Volume = " + str(volume))
     return volume
+
+
+def depth_to_xyz(depth):
+    x_size = depth.size[1]
+    x = np.asarray([i - (x_size // 2) for i in range(x_size)])
+    x = np.tile(x, (1, x_size))
+    x = np.transpose(x)
+    x = np.tan(cfg["webcam_h_fov"] * pi / 360) / (x_size / 2) * np.multiply(x, depth)
+
+    y_size = depth.size[0]
+    y = np.asarray([i - (y_size // 2) for i in range(y_size)])
+    y = np.tile(y, (1, y_size))
+    y = np.tan(cfg["webcam_h_fov"] * pi / 360) / (y_size / 2) * np.multiply(y, depth)
+
+    z = depth  # TODO Might translate the point cloud along the z-axis, so that camera is not z=0
+
+    x = np.expand_dims(x, -1)  # [b, h, w, 1]
+    y = np.expand_dims(y, -1)  # [b, h, w, 1]
+    z = np.expand_dims(z, -1)  # [b, h, w, 1]
+    p = np.concatenate((x, y, z), axis=-1)  # [b, h, w, 3]
+
+    return p
 
 
 def camera_capture():
