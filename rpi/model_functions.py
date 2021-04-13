@@ -4,7 +4,6 @@ import tflite_runtime.interpreter as tflite
 import matplotlib.pyplot as plt
 from time import time
 from src.config import cfg
-from src.image_utils import bins_to_depth
 
 
 def depth_volume(depth):
@@ -59,3 +58,20 @@ def display_rgbd(images):
         plt.axis('off')
     plt.show()
     return None
+
+
+def bins_to_depth(depth_bins):
+    """
+    Converts a bin tensor into a depth image
+    Copy of src.image_utils bins_to_depth, but without tensorflow dependencies
+
+    :param depth_bins: the depth bins in one_hot encoding, shape (b, h, w, c)
+    the depth bins can also be passed as softmax bins of shape (b, h, w, c)
+    :return: a depth image of shape (b, h, w) with type tf.float32
+    """
+    bin_interval = (np.log10(80) - np.log10(0.25)) / 150
+    # the borders variable here holds the depth for each specific value of the one hot encoded bins
+    borders = np.asarray([np.log10(0.25) + (bin_interval * (i + 0.5)) for i in range(150)])
+    depth = np.matmul(depth_bins, borders)  # [b, h, w, (c] * [c), 1] -> [b, h, w, 1]
+    depth = np.power(10., depth)
+    return depth
