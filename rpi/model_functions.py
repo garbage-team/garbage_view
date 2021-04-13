@@ -19,7 +19,9 @@ def depth_volume(depth):
     print(triangles.simplices.shape)
     verts = p[triangles.simplices]
     x1, x2, x3, y1, y2, y3 = verts[:, 0, 0], verts[:, 1, 0], verts[:, 2, 0], verts[:, 0, 1], verts[:, 1, 1], verts[:, 2, 1]
-    volumes = np.abs(0.5 * (((x2 - x1) * (y3 - y1)) - ((x3 - x1) * (y2 - y1))))
+    z = verts[:, :, 2]
+    heights = np.sum(z, axis=-1) / 3.
+    volumes = heights * np.abs(0.5 * (((x2 - x1) * (y3 - y1)) - ((x3 - x1) * (y2 - y1))))
     volume = np.sum(volumes)
     print("Volume = " + str(volume))
     return volume
