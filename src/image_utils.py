@@ -166,3 +166,8 @@ def depth_to_bins(depth):
     max_mask = tf.math.equal(bins, cfg["depth_bins"])
     bins = tf.math.subtract(bins, tf.cast(max_mask, bins.dtype))
     return bins
+
+
+def depth_volume(depth):
+
+    return np.sum(depth)/np.sum(depth.size)
