@@ -25,13 +25,12 @@ def depth_to_xyz(depth):
     x_size = depth.shape[1]
     y_size = depth.shape[0]
 
-    x = np.asarray([i - (x_size // 2) for i in range(x_size)])
-    x = np.tile(np.expand_dims(x, axis=0), (1, x_size))
+    x = np.asarray([i - (x_size // 2) for i in range(x_size)])  # [w,]
+    x = np.tile(np.expand_dims(x, axis=0), (y_size, 1))         # [h, w]
     x = np.tan(cfg["webcam_h_fov"] * pi / 360) / (x_size / 2) * np.multiply(x, depth)
 
-    y = np.asarray([i - (y_size // 2) for i in range(y_size)])
-    y = np.tile(np.expand_dims(y, axis=0), (1, y_size))
-    y = np.transpose(y)
+    y = np.asarray([i - (y_size // 2) for i in range(y_size)])  # [h,]
+    y = np.tile(np.expand_dims(y, axis=-1), (1, x_size))        # [h, w]
     y = np.tan(cfg["webcam_h_fov"] * pi / 360) / (y_size / 2) * np.multiply(y, depth)
 
     z = depth  # TODO Might translate the point cloud along the z-axis, so that camera is not z=0
