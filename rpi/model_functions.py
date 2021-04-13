@@ -3,6 +3,7 @@ import numpy as np
 import tflite_runtime.interpreter as tflite
 import matplotlib.pyplot as plt
 from time import time
+from src.config import cfg
 from src.image_utils import bins_to_depth
 
 
@@ -25,7 +26,7 @@ def camera_capture():
     return frame
 
 
-def interpret_model(input_data, model_path='lite_model_04-13.tflite'):
+def interpret_model(input_data, model_path=cfg["tflite_model_path"]):
     interpreter = tflite.Interpreter(model_path=model_path)
     interpreter.allocate_tensors()
 
