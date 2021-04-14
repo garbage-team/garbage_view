@@ -3,8 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import random
+import struct
+import cv2
+import open3d as o3d
 from src.config import cfg
-
+from rpi.model_functions import depth_to_xyz
 
 
 def img_augmentation(rgb, d, img_size=224):
@@ -52,6 +55,7 @@ def resize_normalize(rgb, d, max_depth=80., model_max_output=80., img_size=224):
     d_scale = model_max_output / max_depth
 
     return tf.cast(rgb, tf.float32) / 255., tf.cast(d, tf.float32) / d_scale
+
 
 def normalize_rgb(rgb):
     # Normalizes rgb images from values of 0-255 to values of 0.0-1.0
@@ -168,6 +172,23 @@ def depth_to_bins(depth):
     return bins
 
 
-def depth_volume(depth):
+def depth_to_pcd(depth, rgb, output_path, view=True):
+    xyz = depth_to_xyz(depth)
+    p = np.reshape(xyz, (224*224, 3))
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(p)
+    pcd.colors = o3d.utility.Vector3dVector(rgb)
+    o3d.io.write_point_cloud(output_path, pcd)
+    if view:
+        o3d.visualization.draw_geometries([pcd])
+    return None
 
-    return np.sum(depth)/np.sum(depth.size)
+
+def images_to_pcd(rgb_path, d_path, pcd_path):
+    # TODO perhaps remove image loading here, and allow passing arrays for rgb and d instead
+    rgb_img = cv2.cvtColor(cv2.imread(str(rgb_path)), cv2.COLOR_BGR2RGB)
+    rgb_img = np.reshape(rgb_img, (224 * 224, 3)) / 255
+    with open(str(d_path), "rb") as file:
+        d_img = file.read()
+    d_img = np.array(struct.unpack("H" * 224 * 224, d_img)).reshape((224, 224))
+    depth_to_pcd(d_img, rgb_img, pcd_path)
