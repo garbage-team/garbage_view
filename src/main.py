@@ -28,7 +28,7 @@ def main():
     # test_model(rgb, d, model)
     return None
 
-
+# TODO Clean this code up, refactor functions to appropriate files
 def custom_loss(gt, pred):
     loss_wcel = wcel_loss(gt, pred)
     loss_vnl = 6 * virtual_normal_loss(gt, pred)
