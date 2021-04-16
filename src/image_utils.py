@@ -178,6 +178,7 @@ def depth_to_pcd(depth, rgb, output_path, view=True):
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(p)
     pcd.colors = o3d.utility.Vector3dVector(rgb)
+    pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
     o3d.io.write_point_cloud(output_path, pcd)
     if view:
         o3d.visualization.draw_geometries([pcd])

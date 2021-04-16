@@ -26,7 +26,6 @@ def create_paths(base):
                 d_path = d
                 break
         path_doubles.append((path, d_path))
-        print(path_doubles)
     return path_doubles
 
 
@@ -53,18 +52,20 @@ def load_data(path_doubles):
     return data_doubles
 
 
-def create_dataset(path="../data/", shape=(224, 224)):
+def create_dataset(path="../data/train", shape=(224, 224), shuffle=1000, batch=4):
     # Creates the tensorflow dataset object that can be used for training a model
     # The dataset contains pairs of images shuffled and batched as 10 image pairs
     # path :: the string to the folder that contains the training data
     # shape :: a tuple of (height, width) for the output of images in the dataset
+    # shuffle :: buffer size for shuffling the the dataset
+    # batch :: batch size for the dataset
     # returns :: a tensorflow.data.Dataset object containing pairs of rgb and depth images
     paths = create_paths(path)
     ds = tf.data.Dataset. \
         from_generator(lambda: ds_generator(paths, shape),
                        output_types=(tf.float32, tf.float32),
                        output_shapes=([shape[0], shape[1], 3], [shape[0], shape[1], 1]))
-    ds = ds.shuffle(1000).batch(4)
+    ds = ds.shuffle(shuffle).batch(batch)
     return ds
 
 
@@ -77,7 +78,7 @@ def ds_generator(data, shape):
         rgb, d = load_data([(rgb_path, d_path)])[0]
         rgb = cv2.resize(rgb, (shape[1], shape[0]), interpolation=cv2.INTER_NEAREST)
         d = cv2.resize(d, (shape[1], shape[0]), interpolation=cv2.INTER_NEAREST)
-        rgb, d = src.image_utils.resize_normalize(rgb, d)
+        rgb, d = src.image_utils.img_augmentation(rgb, d)
         yield rgb, d
 
 

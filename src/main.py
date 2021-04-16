@@ -3,15 +3,16 @@ import tensorflow_datasets as tfds
 from src.model import sm_model
 from src.image_utils import display_images, resize_normalize, bins_to_depth
 from src.loss_functions import wcel_loss, virtual_normal_loss
-from src.data_loader import load_nyudv2, load_data
+from src.data_loader import load_nyudv2, load_data, create_dataset
 
 
 def main():
     config_gpu()
-    model = load_model()
+    model = load_model(model_path='../models/model')
+    model = optimize_compile_model(model)
     model.summary()
 
-    checkpoint_filepath = 'D:/wsl/tmp/model_checkpoint'
+    checkpoint_filepath = '../tmp/model_checkpoint'
     model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_filepath,
         save_weights_only=True,
@@ -20,8 +21,9 @@ def main():
         save_best_only=True)
 
     ds = load_nyudv2(shuffle=True, batch=4)
+    # ds = create_dataset()
     model.fit(ds, epochs=1, callbacks=[model_checkpoint_callback, tf.keras.callbacks.TerminateOnNaN()])
-    save_model(model, path='D:/wsl/model_augmented')
+    save_model(model, path='../models/model')
     img_paths = [('D:/wsl/17_Color.png', 'D:/wsl/17_Depth.raw')]
     # [(rgb, d)] = load_data(img_paths)
     # rgb, d = resize_normalize(rgb, d, max_depth=80000)
@@ -80,7 +82,7 @@ def save_model(model, path):
     return None
 
 
-def load_model(model_path='D:/wsl/model_augmented'):
+def load_model(model_path='../models/model'):
     model = tf.keras.models.load_model(model_path, compile=False) # TODO Add the correct settings to the optimizer
     model.summary()
     model = optimize_compile_model(model)
