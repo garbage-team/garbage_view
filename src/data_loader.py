@@ -42,7 +42,6 @@ def load_data(path_doubles):
         with open(str(depth), "rb") as file:
             d_img = file.read()
         d_img = np.array(struct.unpack("H" * 480*640, d_img)).reshape((480, 640, 1))
-        d_img = d_img / 1000
         # read the rgb image:
         rgb_img = cv2.cvtColor(cv2.imread(str(rgb)), cv2.COLOR_BGR2RGB)
         rgb_img = cv2.resize(rgb_img, (640, 480))
@@ -104,22 +103,10 @@ def _bytes_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
-def _float_feature(value):
-    """Returns a float_list from a float / double."""
-    return tf.train.Feature(float_list=tf.train.FloatList(value=[value]))
-
-
-def _int64_feature(value):
-    """Returns an int64_list from a bool / enum / int / uint."""
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
-
-
-def image_example(image, label, dims):
+def image_example(image, label):
     feature = {
-        'rgb_shape': _bytes_feature(dims[0]),
-        'd_shape': _bytes_feature(dims[1]),
-        'label': _bytes_feature(label.tobytes()),
-        'image_raw': _bytes_feature(image.tobytes()),
+        'depth': _bytes_feature(label.tobytes()),
+        'rgb': _bytes_feature(image.tobytes()),
     }
     return tf.train.Example(features=tf.train.Features(feature=feature))
 
@@ -133,53 +120,47 @@ def write_tfrecord(file, data_path):
     """
     data = load_data(create_paths(data_path))
     n_samples = len(data)
-    rgb_shape = ','.join(str(i) for i in data[0][0].shape)
-    rgb_shape = bytes(rgb_shape, 'utf-8')
-    d_shape = ','.join(str(i) for i in data[0][1].shape)
-    d_shape = bytes(d_shape, 'utf-8')
-    dims = (rgb_shape, d_shape)
     with tf.io.TFRecordWriter(file) as writer:
         for i in range(n_samples):
             image = data[i][0]
             label = data[i][1]
-            tf_example = image_example(image, label, dims)
+            tf_example = image_example(image, label)
             writer.write(tf_example.SerializeToString())
 
 
-def read_tfrecord(record_file):
-    dataset = tf.data.TFRecordDataset(record_file)
-    parsed_record = dataset.map(_parse_record)
-    decoded_record = parsed_record.map(_decode_record)
-    return decoded_record
+def load_tfrecord_dataset(tf_record_files):
+    """
+    Loads a dataset saved as one or more tfrecord file
+    :param tf_record_files: input file name for the TFRecord file(s)
+    :return: dataset with image and label pairs (rgb, depth)
+    """
+    ignore_order = tf.data.Options()
+    ignore_order.experimental_deterministic = False  # disable order, increase speed
+    dataset = tf.data.TFRecordDataset(tf_record_files)
+    dataset = dataset.with_options(
+        ignore_order
+    )  # uses data as soon as it streams in, rather than in its original order
+    dataset = dataset.map(read_tfrecord, num_parallel_calls=tf.data.AUTOTUNE)
+
+    return dataset
 
 
-def _parse_record(record):
+def read_tfrecord(example):
     feature = {
-        'rgb_shape': tf.io.FixedLenFeature([], tf.string),
-        'd_shape': tf.io.FixedLenFeature([], tf.string),
-        'label': tf.io.FixedLenFeature([], tf.string),
-        'image_raw': tf.io.FixedLenFeature([], tf.string),
+        'depth': tf.io.FixedLenFeature([], tf.string),
+        'rgb': tf.io.FixedLenFeature([], tf.string),
     }
-    return tf.io.parse_single_example(record, feature)
-
-
-def _decode_record(record):
-    image = tf.io.decode_raw(
-        record['image_raw'], out_type="uint8", little_endian=True, fixed_length=None, name=None
-    )
-    label = tf.io.decode_raw(
-        record['label'], out_type=tf.float64, little_endian=True, fixed_length=None, name=None
-    )
-    rgb_shape = record['rgb_shape'].numpy().decode('utf-8')
-    rgb_shape = tuple(int(x) for x in rgb_shape.split(','))
-    d_shape = record['d_shape'].numpy().decode('utf-8')
-    d_shape = tuple(int(x) for x in d_shape.split(','))
-    image = tf.reshape(image, rgb_shape)
-    label = tf.reshape(label, d_shape)
+    example = tf.io.parse_single_example(example, feature)
+    image = tf.io.decode_raw(example['rgb'], out_type="uint8")
+    label = tf.io.decode_raw(example['depth'], out_type=tf.float32)
+    image = tf.reshape(image, (640, 480, 3))
+    label = tf.reshape(label, (640, 480, 1))
     return image, label
-# TODO Figure out what to return here to load the data into a functional dataset, https://keras.io/examples/keras_recipes/tfrecord/
+
+
 
 if __name__ == "__main__":
+    # TODO Check if this can be removed, probably not used?
     dataset = create_dataset("../data/", (224, 224))
     for img_rgb, img_d in dataset.take(1):
         print(img_rgb.shape)
