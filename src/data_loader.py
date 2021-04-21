@@ -3,6 +3,7 @@ import pathlib
 import numpy as np
 import struct
 import cv2
+import random
 import src.image_utils
 import tensorflow_datasets as tfds
 
@@ -15,8 +16,8 @@ def create_paths(base):
     # base :: string with path to base folder
     # returns :: list[(rgb_path, d_path)] rgb paths and depth paths respectively
     base = pathlib.Path(base)
-    rgb_paths = list(base.glob("*.png"))
-    depth_paths = list(base.glob("*.raw"))
+    rgb_paths = list(base.glob("*/*.png"))
+    depth_paths = list(base.glob("*/*.raw"))
     path_doubles = []
     for path in rgb_paths:
         path_id = path.parts[-1].split(".")[0]
@@ -41,7 +42,7 @@ def load_data(path_doubles):
         # read the depth image:
         with open(str(depth), "rb") as file:
             d_img = file.read()
-        d_img = np.array(struct.unpack("H" * 480*640, d_img)).reshape((480, 640, 1))
+        d_img = np.array(struct.unpack("H" * 480*640, d_img), dtype='uint16').reshape((480, 640, 1))
         # read the rgb image:
         rgb_img = cv2.cvtColor(cv2.imread(str(rgb)), cv2.COLOR_BGR2RGB)
         rgb_img = cv2.resize(rgb_img, (640, 480))
@@ -106,7 +107,7 @@ def _bytes_feature(value):
 def image_example(image, label):
     feature = {
         'depth': _bytes_feature(label.tobytes()),
-        'rgb': _bytes_feature(image.tobytes()),
+        'rgb': _bytes_feature(image.tobytes())
     }
     return tf.train.Example(features=tf.train.Features(feature=feature))
 
@@ -114,34 +115,43 @@ def image_example(image, label):
 def write_tfrecord(file, data_path):
     """
 
-    :param file: output file name for the TFRecord file
+    :param file: output file name for the TFRecord files without _train and _validation
     :param data_path: path to folder with input data, with .png (rgb) and .raw (depth) images
-    :return: None, only writes to given path
+    :return: True, if successfully writen to given path, with _train and _validation splits
     """
     data = load_data(create_paths(data_path))
-    n_samples = len(data)
-    with tf.io.TFRecordWriter(file) as writer:
-        for i in range(n_samples):
+    val_split = int(0.1 * len(data))
+    with tf.io.TFRecordWriter(file + "_validation") as writer:
+        for _ in range(val_split):
+            val_data = data.pop(random.randrange(len(data)))
+            image = val_data[0]
+            label = val_data[1]
+            tf_example = image_example(image, label)
+            writer.write(tf_example.SerializeToString())
+    with tf.io.TFRecordWriter(file+"_train") as writer:
+        for i in range(len(data)):
             image = data[i][0]
             label = data[i][1]
             tf_example = image_example(image, label)
             writer.write(tf_example.SerializeToString())
+    return True
 
 
-def load_tfrecord_dataset(tf_record_files):
+def load_tfrecord_dataset(tf_record_files, shuffle=2000, batch=4):
     """
     Loads a dataset saved as one or more tfrecord file
     :param tf_record_files: input file name for the TFRecord file(s)
     :return: dataset with image and label pairs (rgb, depth)
     """
-    ignore_order = tf.data.Options()
-    ignore_order.experimental_deterministic = False  # disable order, increase speed
+    #ignore_order = tf.data.Options()
+    #ignore_order.experimental_deterministic = False  # disable order, increase speed
     dataset = tf.data.TFRecordDataset(tf_record_files)
-    dataset = dataset.with_options(
-        ignore_order
-    )  # uses data as soon as it streams in, rather than in its original order
+    #dataset = dataset.with_options(
+     #   ignore_order
+    #)  # uses data as soon as it streams in, rather than in its original order
+    dataset = dataset.shuffle(shuffle)
     dataset = dataset.map(read_tfrecord, num_parallel_calls=tf.data.AUTOTUNE)
-
+    dataset = dataset.batch(batch)
     return dataset
 
 
@@ -152,9 +162,10 @@ def read_tfrecord(example):
     }
     example = tf.io.parse_single_example(example, feature)
     image = tf.io.decode_raw(example['rgb'], out_type="uint8")
-    label = tf.io.decode_raw(example['depth'], out_type=tf.float32)
-    image = tf.reshape(image, (640, 480, 3))
-    label = tf.reshape(label, (640, 480, 1))
+    label = tf.io.decode_raw(example['depth'], out_type=tf.uint16)
+    image = tf.reshape(image, (480, 640, 3))
+    label = tf.reshape(label, (480, 640, 1))
+    image, label = src.image_utils.img_augmentation(image, label)
     return image, label
 
 

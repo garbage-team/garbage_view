@@ -1,33 +1,28 @@
 import tensorflow as tf
-import tensorflow_datasets as tfds
+import json
+import os.path
 from src.model import sm_model
 from src.image_utils import display_images, resize_normalize, bins_to_depth
 from src.loss_functions import wcel_loss, virtual_normal_loss
-from src.data_loader import load_nyudv2, load_data, create_dataset
+from src.data_loader import load_nyudv2, load_data, create_dataset, load_tfrecord_dataset
 
 
 def main():
     config_gpu()
-    model = load_model(model_path='../models/model')
+    model = sm_model()
     model = optimize_compile_model(model)
     model.summary()
 
     checkpoint_filepath = '../tmp/model_checkpoint'
     model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_filepath,
-        save_weights_only=True,
-        monitor='loss',
-        mode='min',
-        save_best_only=True)
+        save_weights_only=True)
 
-    ds = load_nyudv2(shuffle=True, batch=4)
-    # ds = create_dataset()
-    model.fit(ds, epochs=1, callbacks=[model_checkpoint_callback, tf.keras.callbacks.TerminateOnNaN()])
-    save_model(model, path='../models/model')
-    img_paths = [('D:/wsl/17_Color.png', 'D:/wsl/17_Depth.raw')]
-    # [(rgb, d)] = load_data(img_paths)
-    # rgb, d = resize_normalize(rgb, d, max_depth=80000)
-    # test_model(rgb, d, model)
+    ds_train = load_tfrecord_dataset("../data/garbage_record_train")
+    ds_val = load_tfrecord_dataset("../data/garbage_record_validation")
+    history = model.fit(ds_train, epochs=1, validation_data=ds_val,
+              callbacks=[model_checkpoint_callback, tf.keras.callbacks.TerminateOnNaN()])
+    save_model(model, history, path='../models/garbage_model')
     return None
 
 # TODO Clean this code up, refactor functions to appropriate files
@@ -55,8 +50,8 @@ def config_gpu():
     if tf.config.list_physical_devices('GPU'):
         physical_devices = tf.config.list_physical_devices('GPU')
         tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
-        tf.config.experimental.set_virtual_device_configuration(physical_devices[0], [
-            tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4000)])
+        #tf.config.experimental.set_virtual_device_configuration(physical_devices[0], [
+            #tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4000)])
     return None
 
 
@@ -70,14 +65,28 @@ def test_model(rgb, d, model):
     return None
 
 
-def save_model(model, path):
+def save_model(model, history, path):
     """
     Saves the model input to the path input
-    :param model: 
-    :param path:
+    :param model: The model object to be saved
+    :param history: The history generated from training
+    :param path: The path to where the model and history should be saved.
     :return:
     """
     tf.saved_model.save(model, path)
+    json_file = path + ".json"
+    if os.path.exists(json_file):
+        with open(json_file, 'r+') as f:
+            data = json.load(f)
+            for key in data:
+                values = history.history[key]
+                for value in values:
+                    data[key].append(value)
+            f.seek(0)
+            json.dump(data, f)
+    else:
+        with open(json_file, 'w') as f:
+            json.dump(history.history, f)
     print('Model saved to:', path)
     return None
 

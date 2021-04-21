@@ -13,8 +13,9 @@ from rpi.model_functions import depth_to_xyz
 def img_augmentation(rgb, d, img_size=224):
     # Normalizes and resize the tf tensors of rgb and d
 
-    d = tf.expand_dims(d, -1)
-    flip_case = random.randint(0, 3)
+    if len(d.shape) == 2:
+        d = tf.expand_dims(d, -1)
+    flip_case = tf.random.uniform(maxval=4, dtype=tf.int32)
     # if case == 0, does no augmentation of that kind
     # Flip horizontally
     if flip_case == 1:
@@ -41,7 +42,6 @@ def img_augmentation(rgb, d, img_size=224):
     d = tf.image.crop_to_bounding_box(d, offset_height, offset_width, new_height, new_width)
 
     rgb, d = resize_normalize(rgb, d)
-
     return rgb, d
 
 
@@ -50,7 +50,9 @@ def resize_normalize(rgb, d, max_depth=80., model_max_output=80., img_size=224):
         tf.keras.layers.experimental.preprocessing.Resizing(img_size, img_size)
     ])
     rgb = resize(rgb)
-    d = tf.expand_dims(d, -1)
+
+    if d.shape == 2:
+        d = tf.expand_dims(d, -1)
     d = resize(d)
     d_scale = model_max_output / max_depth
 

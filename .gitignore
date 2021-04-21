@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # Project specific
-model/
+models/
 data/
 tmp/
 .idea/
