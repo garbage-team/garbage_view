@@ -41,7 +41,7 @@ def img_augmentation(rgb, d, img_size=224):
     rgb = tf.image.crop_to_bounding_box(rgb, offset_height, offset_width, new_height, new_width)
     d = tf.image.crop_to_bounding_box(d, offset_height, offset_width, new_height, new_width)
 
-    rgb, d = resize_normalize(rgb, d)
+    # rgb, d = resize_normalize(rgb, d, max_depth=80000.)
     return rgb, d
 
 
@@ -56,7 +56,7 @@ def resize_normalize(rgb, d, max_depth=80., model_max_output=80., img_size=224):
     d = resize(d)
     d_scale = model_max_output / max_depth
 
-    return tf.cast(rgb, tf.float32) / 255., tf.cast(d, tf.float32) / d_scale
+    return tf.cast(rgb, tf.float32) / 255., tf.cast(d, tf.float32) * d_scale
 
 
 def normalize_rgb(rgb):
@@ -112,6 +112,7 @@ def display_images(img_list):
     for i, img in enumerate(img_list):
         plt.subplot(1, len(img_list), i+1)
         plt.imshow(img, cmap='hsv')
+        plt.clim(0, 5)
     plt.show()
     return None
 

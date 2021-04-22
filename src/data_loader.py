@@ -97,7 +97,7 @@ def load_nyudv2(batch=4, shuffle=True, ds_path='D:/wsl/tensorflow_datasets', spl
 
     nyudv2 = nyudv2.prefetch(tf.data.experimental.AUTOTUNE)
 
-    return nyudv2
+    return nyudv2, info
 
 
 def _bytes_feature(value):
@@ -142,25 +142,25 @@ def write_tfrecord(file, data_path):
 
 def load_tfrecord_dataset(tf_record_files, shuffle=2000, batch=4, augment=True):
     """
-    Loads a dataset saved as one or more tfrecord file
+    Loads a dataset saved as one or more tfrecord files
+
     :param tf_record_files: input file name for the TFRecord file(s)
+    :param shuffle: The size of the shuffle buffer in number of elements (int)
+    :param batch: The batch size of the returned dataset (int)
+    :param augment: Whether or not to augment the dataset by cropping and flipping etc. (bool)
     :return: dataset with image and label pairs (rgb, depth)
     """
-    #ignore_order = tf.data.Options()
-    #ignore_order.experimental_deterministic = False  # disable order, increase speed
-    dataset = tf.data.TFRecordDataset(tf_record_files)
-    #dataset = dataset.with_options(
-     #   ignore_order
-    #)  # uses data as soon as it streams in, rather than in its original order
+    ds = tf.data.TFRecordDataset(tf_record_files)
 
-    dataset = dataset.map(read_tfrecord, num_parallel_calls=tf.data.AUTOTUNE)
+    ds = ds.map(read_tfrecord, num_parallel_calls=tf.data.AUTOTUNE)
     if augment:
-        dataset = dataset.map(src.image_utils.img_augmentation, num_parallel_calls=tf.data.AUTOTUNE)
-    else:
-        dataset = dataset.map(src.image_utils.resize_normalize, num_parallel_calls=tf.data.AUTOTUNE)
-    dataset = dataset.shuffle(shuffle)
-    dataset = dataset.batch(batch)
-    return dataset
+        ds = ds.map(src.image_utils.img_augmentation, num_parallel_calls=tf.data.AUTOTUNE)
+
+    ds = ds.map(lambda x, y: src.image_utils.resize_normalize(x, y, max_depth=80000.),
+                num_parallel_calls=tf.data.AUTOTUNE)
+    ds = ds.shuffle(shuffle)
+    ds = ds.batch(batch)
+    return ds
 
 
 def read_tfrecord(example):

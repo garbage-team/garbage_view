@@ -20,7 +20,7 @@ def main():
 
     ds_train = load_tfrecord_dataset("../data/garbage_record_train")
     ds_val = load_tfrecord_dataset("../data/garbage_record_validation", augment=False)
-    history = model.fit(ds_train, epochs=1, validation_data=ds_val,
+    history = model.fit(ds_train, epochs=18, validation_data=ds_val,
               callbacks=[model_checkpoint_callback, tf.keras.callbacks.TerminateOnNaN()])
     save_model(model, history, path='../models/augmented')
     for rgb, d in ds_val.take(1):
