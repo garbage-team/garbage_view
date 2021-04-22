@@ -20,10 +20,13 @@ def create_paths(base):
     depth_paths = list(base.glob("*/*.raw"))
     path_doubles = []
     for path in rgb_paths:
-        path_id = path.parts[-1].split(".")[0]
+        # path_id = path.parts[-1].split(".")[0]
+        path_id = str(path.parts[-2]) + "/" + str(path.parts[-1])
+        path_id = path_id.split(".")[0]
         d_path = None
         for d in depth_paths:
-            if path_id == d.parts[-1].split(".")[0]:
+            d_p = str(d.parts[-2]) + "/" + str(d.parts[-1])
+            if path_id == d_p.split(".")[0]:
                 d_path = d
                 break
         path_doubles.append((path, d_path))
@@ -137,7 +140,7 @@ def write_tfrecord(file, data_path):
     return True
 
 
-def load_tfrecord_dataset(tf_record_files, shuffle=2000, batch=4):
+def load_tfrecord_dataset(tf_record_files, shuffle=2000, batch=4, augment=True):
     """
     Loads a dataset saved as one or more tfrecord file
     :param tf_record_files: input file name for the TFRecord file(s)
@@ -149,8 +152,13 @@ def load_tfrecord_dataset(tf_record_files, shuffle=2000, batch=4):
     #dataset = dataset.with_options(
      #   ignore_order
     #)  # uses data as soon as it streams in, rather than in its original order
-    dataset = dataset.shuffle(shuffle)
+
     dataset = dataset.map(read_tfrecord, num_parallel_calls=tf.data.AUTOTUNE)
+    if augment:
+        dataset = dataset.map(src.image_utils.img_augmentation, num_parallel_calls=tf.data.AUTOTUNE)
+    else:
+        dataset = dataset.map(src.image_utils.resize_normalize, num_parallel_calls=tf.data.AUTOTUNE)
+    dataset = dataset.shuffle(shuffle)
     dataset = dataset.batch(batch)
     return dataset
 
@@ -165,7 +173,6 @@ def read_tfrecord(example):
     label = tf.io.decode_raw(example['depth'], out_type=tf.uint16)
     image = tf.reshape(image, (480, 640, 3))
     label = tf.reshape(label, (480, 640, 1))
-    image, label = src.image_utils.img_augmentation(image, label)
     return image, label
 
 

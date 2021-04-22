@@ -19,10 +19,12 @@ def main():
         save_weights_only=True)
 
     ds_train = load_tfrecord_dataset("../data/garbage_record_train")
-    ds_val = load_tfrecord_dataset("../data/garbage_record_validation")
+    ds_val = load_tfrecord_dataset("../data/garbage_record_validation", augment=False)
     history = model.fit(ds_train, epochs=1, validation_data=ds_val,
               callbacks=[model_checkpoint_callback, tf.keras.callbacks.TerminateOnNaN()])
-    save_model(model, history, path='../models/garbage_model')
+    save_model(model, history, path='../models/augmented')
+    for rgb, d in ds_val.take(1):
+        test_model(rgb[0], d[0], model)
     return None
 
 # TODO Clean this code up, refactor functions to appropriate files
@@ -92,6 +94,7 @@ def save_model(model, history, path):
 
 
 def load_model(model_path='../models/model'):
+    print("Loading model: "+ model_path)
     model = tf.keras.models.load_model(model_path, compile=False) # TODO Add the correct settings to the optimizer
     model.summary()
     model = optimize_compile_model(model)
