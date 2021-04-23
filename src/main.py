@@ -1,9 +1,10 @@
 import tensorflow as tf
-import tensorflow_datasets as tfds
+import json
+import os.path
 from src.model import sm_model
 from src.image_utils import display_images, resize_normalize, bins_to_depth
 from src.loss_functions import wcel_loss, virtual_normal_loss
-from src.data_loader import load_nyudv2, load_data, create_dataset
+from src.data_loader import load_nyudv2, load_data, create_dataset, load_tfrecord_dataset
 
 
 def main():
@@ -17,22 +18,18 @@ def main():
     checkpoint_filepath = '../tmp/model_checkpoint'
     model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_filepath,
-        save_weights_only=True,
-        monitor='loss',
-        mode='min',
-        save_best_only=True)
+        save_weights_only=True)
 
-    ds = load_nyudv2(shuffle=True, batch=4)
-    # ds = create_dataset()
-    model.fit(ds, epochs=1, callbacks=[model_checkpoint_callback, tf.keras.callbacks.TerminateOnNaN()])
-    save_model(model, path='../models/model')
-    img_paths = [('D:/wsl/17_Color.png', 'D:/wsl/17_Depth.raw')]
-    # [(rgb, d)] = load_data(img_paths)
-    # rgb, d = resize_normalize(rgb, d, max_depth=80000)
-    # test_model(rgb, d, model)
+    ds_train = load_tfrecord_dataset("../data/garbage_record_train")
+    ds_val = load_tfrecord_dataset("../data/garbage_record_validation", augment=False)
+    history = model.fit(ds_train, epochs=18, validation_data=ds_val,
+              callbacks=[model_checkpoint_callback, tf.keras.callbacks.TerminateOnNaN()])
+    save_model(model, history, path='../models/augmented')
+    for rgb, d in ds_val.take(1):
+        test_model(rgb[0], d[0], model)
     return None
 
-
+# TODO Clean this code up, refactor functions to appropriate files
 def custom_loss(gt, pred):
     loss_wcel = wcel_loss(gt, pred)
     loss_vnl = 6 * virtual_normal_loss(gt, pred)
@@ -74,19 +71,34 @@ def test_model(rgb, d, model):
     return None
 
 
-def save_model(model, path):
+def save_model(model, history, path):
     """
     Saves the model input to the path input
-    :param model: 
-    :param path:
+    :param model: The model object to be saved
+    :param history: The history generated from training
+    :param path: The path to where the model and history should be saved.
     :return:
     """
     tf.saved_model.save(model, path)
+    json_file = path + ".json"
+    if os.path.exists(json_file):
+        with open(json_file, 'r+') as f:
+            data = json.load(f)
+            for key in data:
+                values = history.history[key]
+                for value in values:
+                    data[key].append(value)
+            f.seek(0)
+            json.dump(data, f)
+    else:
+        with open(json_file, 'w') as f:
+            json.dump(history.history, f)
     print('Model saved to:', path)
     return None
 
 
 def load_model(model_path='../models/model'):
+    print("Loading model: "+ model_path)
     model = tf.keras.models.load_model(model_path, compile=False) # TODO Add the correct settings to the optimizer
     # optimizer = tf.keras.optimizers.SGD(learning_rate=0.1)
     # model.compile(optimizer=optimizer,

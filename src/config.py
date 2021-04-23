@@ -36,3 +36,7 @@ cfg["nyu_depth_path"] = 'D:/wsl/tensorflow_datasets'
 cfg["tflite_model_path"] = "lite_model_04-13.tflite"
 cfg["webcam_h_fov"] = 82.1
 cfg["webcam_v_fov"] = 52.2
+cfg["kinect_h_fov"] = 62
+cfg["kinect_v_fov"] = 48.6
+cfg["intel_h_fov"] = 69.4
+cfg["intel_v_fov"] = 42.5
