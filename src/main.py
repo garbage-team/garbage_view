@@ -8,8 +8,10 @@ from src.data_loader import load_nyudv2, load_data, create_dataset
 
 def main():
     config_gpu()
-    model = load_model(model_path='../models/model')
-    model = optimize_compile_model(model)
+    path = 'D:/garbage_view/model'
+    ds_path = 'D:/tensorflow_datasets'
+    model = load_model(path)
+    # model = sm_model()
     model.summary()
 
     checkpoint_filepath = '../tmp/model_checkpoint'
@@ -37,6 +39,10 @@ def custom_loss(gt, pred):
     return loss_wcel + loss_vnl
 
 
+def custom_accuracy(gt, pred):
+    return 1
+
+
 def save_to_tflite(model):
     path = "../model/"
 
@@ -55,8 +61,6 @@ def config_gpu():
     if tf.config.list_physical_devices('GPU'):
         physical_devices = tf.config.list_physical_devices('GPU')
         tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
-        tf.config.experimental.set_virtual_device_configuration(physical_devices[0], [
-            tf.config.experimental.VirtualDeviceConfiguration(memory_limit=4000)])
     return None
 
 
@@ -84,6 +88,11 @@ def save_model(model, path):
 
 def load_model(model_path='../models/model'):
     model = tf.keras.models.load_model(model_path, compile=False) # TODO Add the correct settings to the optimizer
+    # optimizer = tf.keras.optimizers.SGD(learning_rate=0.1)
+    # model.compile(optimizer=optimizer,
+    #               loss=wcel_loss,
+    #               metrics=['accuracy'])
+    print("Loaded existing model successfully!")
     model.summary()
     model = optimize_compile_model(model)
     return model
