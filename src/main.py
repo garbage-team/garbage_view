@@ -9,35 +9,38 @@ from src.data_loader import load_nyudv2, load_data, create_dataset, load_tfrecor
 
 def main():
     config_gpu()
-    path = 'D:/garbage_view/model'
+    path = 'D:/garbage_view/models/model_wo_l2_1'
     ds_path = 'D:/tensorflow_datasets'
-    model = load_model(path)
-    # model = sm_model()
+    # model = load_model(path)
+    model = sm_model()
     model.summary()
+    model = optimize_compile_model(model, fov="kinect")
 
     checkpoint_filepath = '../tmp/model_checkpoint'
     model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_filepath,
         save_weights_only=True)
 
-    ds_train = load_tfrecord_dataset("../data/garbage_record_train")
-    ds_val = load_tfrecord_dataset("../data/garbage_record_validation", augment=False)
-    history = model.fit(ds_train, epochs=18, validation_data=ds_val,
-              callbacks=[model_checkpoint_callback, tf.keras.callbacks.TerminateOnNaN()])
-    save_model(model, history, path='../models/augmented')
-    for rgb, d in ds_val.take(1):
-        test_model(rgb[0], d[0], model)
+    # ds_train = load_tfrecord_dataset("D:/garbage_record_train")
+    # ds_val = load_tfrecord_dataset("D:/garbage_record_validation", augment=False)
+    ds_train, _ = load_nyudv2(batch=4, shuffle=True, ds_path=ds_path, split='train')
+    ds_val, _ = load_nyudv2(batch=4, shuffle=True, ds_path=ds_path, split='validation')
+    history = model.fit(ds_train, epochs=5, validation_data=ds_val,
+                        callbacks=[model_checkpoint_callback, tf.keras.callbacks.TerminateOnNaN()])
+    save_model(model, history, path='D:/garbage_view/models/model_wo_l2_1')
     return None
 
+
 # TODO Clean this code up, refactor functions to appropriate files
-def custom_loss(gt, pred):
+def custom_loss(gt, pred, fov="kinect"):
     loss_wcel = wcel_loss(gt, pred)
-    loss_vnl = 6 * virtual_normal_loss(gt, pred)
+    loss_vnl = 6 * virtual_normal_loss(gt, pred, fov=fov)
     return loss_wcel + loss_vnl
 
 
 def custom_accuracy(gt, pred):
-    return 1
+    pred_depth = bins_to_depth(pred)
+    return 1. / (1. + tf.keras.metrics.MSE(gt, tf.expand_dims(pred_depth, axis=-1)))
 
 
 def save_to_tflite(model):
@@ -106,15 +109,15 @@ def load_model(model_path='../models/model'):
     #               metrics=['accuracy'])
     print("Loaded existing model successfully!")
     model.summary()
-    model = optimize_compile_model(model)
+    model = optimize_compile_model(model, fov="kinect")
     return model
 
 
-def optimize_compile_model(model):
+def optimize_compile_model(model, fov="kinect"):
     optimizer = tf.keras.optimizers.SGD(learning_rate=0.0005, momentum=0.9)
     model.compile(optimizer=optimizer,
-                  loss=custom_loss,
-                  metrics=['accuracy'])
+                  loss=lambda x, y: custom_loss(x, y, fov=fov),
+                  metrics=[custom_accuracy])
     return model
 
 

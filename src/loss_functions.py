@@ -1,6 +1,7 @@
 import tensorflow as tf
 from src.image_utils import depth_to_bins, bins_to_depth
 from src.config import cfg
+from math import pi
 
 
 def wcel_loss(gt, pred):
@@ -25,7 +26,7 @@ def wcel_loss(gt, pred):
     return loss
 
 
-def virtual_normal_loss(gt, pred):
+def virtual_normal_loss(gt, pred, fov="kinect"):
     """
     Calculates the virtual normal loss between gt d image and predicted depth bins
 
@@ -36,13 +37,9 @@ def virtual_normal_loss(gt, pred):
     if len(gt.shape) == 4:
         gt = gt[:, :, :, 0]
 
-    if tf.reduce_any(tf.math.is_nan(pred)):
-        tf.print("NaN present in input to VNL")
-
-    gt_xyz = depth_to_xyz(gt, cfg["data_focal_length"], input_shape=gt.shape)
+    gt_xyz = depth_to_xyz(gt, input_shape=gt.shape, fov=fov)
     pred_depth = bins_to_depth(pred)
-    pred_xyz = depth_to_xyz(pred_depth, cfg["data_focal_length"],
-                            input_shape=pred_depth.shape)
+    pred_xyz = depth_to_xyz(pred_depth, input_shape=pred_depth.shape, fov=fov)
     gt_p_groups, pred_p_groups = generate_random_p_groups(gt_xyz, pred_xyz,
                                                           shape=gt_xyz.shape,
                                                           sample_ratio=cfg["vnl_sample_ratio"])
@@ -187,29 +184,27 @@ def normalize_vectors(groups):
     return tf.divide(groups, tf.expand_dims(lengths, axis=-1))
 
 
-def depth_to_xyz(depth, focal_lengths, input_shape=(1, 224, 224)):
+def depth_to_xyz(depth, input_shape=(1, 224, 224), fov="kinect"):
     """
     Convert depth map to a cartesian point cloud map
 
     :param depth: a depth map tensor of shape [b, h, w]
     :param focal_lengths: a tuple of focal lengths as (fx, fy)
     :param input_shape: a tuple of input shape as (b, h, w)
+    :param fov: which type of camera used one of three ["kinect", "webcam", "intel"]
     :return: a tensor of points in cartesian 3-space [b, h, w, 3]
     """
     x = tf.constant([i - (input_shape[1] // 2) for i in range(input_shape[1])])  # [h,] int32
     x = tf.tile(tf.expand_dims(x, axis=0), (input_shape[2], 1))  # [h, w] int32
-    x = tf.cast(x, tf.float32)  # [h, w] float32
-    x = tf.expand_dims(x, axis=0)  # [1, h, w] float32
-    x = tf.multiply(x, depth)
-    x = tf.divide(x, focal_lengths[0])
+    x = tf.expand_dims(x, axis=0)  # [1, h, w] int32
+    x = tf.cast(x, tf.float32)
+    x = (tf.tan(cfg[fov + "_h_fov"] * pi / 360) / (input_shape[2] / 2)) * tf.multiply(x, depth)
 
     y = tf.constant([i - (input_shape[2] // 2) for i in range(input_shape[2])])
-    y = tf.tile(tf.expand_dims(y, axis=0), (input_shape[1], 1))   # [w, h]
-    y = tf.transpose(y, perm=(1, 0))  # [h, w]
-    y = tf.cast(y, tf.float32)
+    y = tf.tile(tf.expand_dims(y, axis=-1), (1, input_shape[1]))   # [h, w]
     y = tf.expand_dims(y, axis=0)  # [1, h, w]
-    y = tf.multiply(y, depth)    # [b, h, w]
-    y = tf.divide(y, focal_lengths[1])
+    y = tf.cast(y, tf.float32)
+    y = (tf.tan(cfg[fov + "_v_fov"] * pi / 360) / (input_shape[1] / 2)) * tf.multiply(y, depth)
 
     z = depth
 
