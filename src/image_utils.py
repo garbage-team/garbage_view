@@ -7,7 +7,7 @@ import struct
 import cv2
 import open3d as o3d
 from src.config import cfg
-from rpi.model_functions import depth_to_xyz
+from rpi.model_functions import numpy_depth_to_xyz
 
 
 def img_augmentation(rgb, d, img_size=224):
@@ -176,7 +176,7 @@ def depth_to_bins(depth):
 
 
 def depth_to_pcd(depth, rgb, output_path, view=True):
-    xyz = depth_to_xyz(depth)
+    xyz = numpy_depth_to_xyz(depth)
     p = np.reshape(xyz, (224*224, 3))
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(p)
