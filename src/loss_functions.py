@@ -12,7 +12,7 @@ def wcel_loss(gt, pred):
     depth_bins = cfg["depth_bins"]
     pred_softmax = pred
     gt_bins = depth_to_bins(gt)
-    pred_logsoft = tf.math.log(pred_softmax)
+    pred_logsoft = tf.math.log(pred_softmax + 1.0e-10)
     valid_mask = tf.logical_not(tf.equal(gt_bins, depth_bins + 1))
     one_hot = tf.one_hot(gt_bins, depth_bins)  # [b, h, w, 1] -> [b, h, w, 150]
 
