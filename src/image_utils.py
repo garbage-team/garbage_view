@@ -6,8 +6,8 @@ import random
 import struct
 import cv2
 import open3d as o3d
+from math import pi
 from src.config import cfg
-from rpi.model_functions import numpy_depth_to_xyz
 
 
 def img_augmentation(rgb, d, img_size=224):
@@ -175,9 +175,9 @@ def depth_to_bins(depth):
     return bins
 
 
-def depth_to_pcd(depth, rgb, output_path, view=True):
-    xyz = numpy_depth_to_xyz(depth)
-    p = np.reshape(xyz, (224*224, 3))
+def depth_to_pcd(depth, rgb, output_path, fov, size=224*224, view=True):
+    xyz = numpy_depth_to_xyz(depth, fov)
+    p = np.reshape(xyz, (size, 3))
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(p)
     pcd.colors = o3d.utility.Vector3dVector(rgb)
@@ -188,14 +188,17 @@ def depth_to_pcd(depth, rgb, output_path, view=True):
     return None
 
 
-def images_to_pcd(rgb_path, d_path, pcd_path):
+def images_to_pcd(rgb_path, d_path, pcd_path, fov="webcam"):
     # TODO perhaps remove image loading here, and allow passing arrays for rgb and d instead
     rgb_img = cv2.cvtColor(cv2.imread(str(rgb_path)), cv2.COLOR_BGR2RGB)
-    rgb_img = np.reshape(rgb_img, (224 * 224, 3)) / 255
+    shape = rgb_img.shape[0:2]
+    img_size = rgb_img.shape[0] * rgb_img.shape[1]
+    rgb_img = np.reshape(rgb_img, (img_size, 3)) / 255
     with open(str(d_path), "rb") as file:
         d_img = file.read()
-    d_img = np.array(struct.unpack("H" * 224 * 224, d_img)).reshape((224, 224))
-    depth_to_pcd(d_img, rgb_img, pcd_path)
+    d_img = np.array(struct.unpack("H" * img_size, d_img)).reshape(shape)
+    depth_to_pcd(d_img, rgb_img, pcd_path, fov=fov, size=img_size)
+    return None
 
 
 def plot_history(history):
@@ -210,3 +213,25 @@ def plot_history(history):
     plt.plot(epochs, loss)
     plt.plot(epochs, val_loss)
     return None
+
+
+def numpy_depth_to_xyz(depth, fov):
+    x_size = depth.shape[1]
+    y_size = depth.shape[0]
+
+    x = np.asarray([i - (x_size // 2) for i in range(x_size)])  # [w,]
+    x = np.tile(np.expand_dims(x, axis=0), (y_size, 1))         # [h, w]
+    x = np.tan(cfg[fov+"_h_fov"] * pi / 360) / (x_size / 2) * np.multiply(x, depth)
+
+    y = np.asarray([i - (y_size // 2) for i in range(y_size)])  # [h,]
+    y = np.tile(np.expand_dims(y, axis=-1), (1, x_size))        # [h, w]
+    y = np.tan(cfg[fov+"_v_fov"] * pi / 360) / (y_size / 2) * np.multiply(y, depth)
+
+    z = depth  # TODO Might translate the point cloud along the z-axis, so that camera is not z=0
+
+    x = np.expand_dims(x, -1)  # [h, w, 1]
+    y = np.expand_dims(y, -1)  # [h, w, 1]
+    z = np.expand_dims(z, -1)  # [h, w, 1]
+    p = np.concatenate((x, y, z), axis=-1)  # [h, w, 3]
+
+    return p
