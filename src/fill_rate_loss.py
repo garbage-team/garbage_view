@@ -24,8 +24,12 @@ def actual_fill_rate_loss(gt, pred, fov="kinect", z_zero=1.3):
     print(tf.reduce_sum(tf.ones_like(tf.cast(gt_mask, tf.int32))))
     # pred_mask = clip_by_border(pred_xyz, lim=lim)
 
-    gt_xyz = z_zero - gt_xyz
-    pred_xyz = z_zero - pred_xyz
+    x, y, z = tf.split(gt_xyz, num_or_size_splits=3, axis=-1)
+    z = z_zero - z
+    gt_xyz = tf.concat([x, y, z], axis=-1)
+    x, y, z = tf.split(pred_xyz, num_or_size_splits=3, axis=-1)
+    z = z_zero - z
+    pred_xyz = tf.concat([x, y, z], axis=-1)
 
     gt_xyz = tf.multiply(gt_xyz, tf.expand_dims(tf.cast(tf.logical_not(gt_mask), tf.float32), axis=-1))
     pred_xyz = tf.multiply(pred_xyz, tf.expand_dims(tf.cast(tf.logical_not(gt_mask), tf.float32), axis=-1))
@@ -56,13 +60,11 @@ def actual_fill_rate_loss(gt, pred, fov="kinect", z_zero=1.3):
                 ((gt_triangles[:, :, 2, 0] - gt_triangles[:, :, 0, 0]) *
                  (gt_triangles[:, :, 1, 1] - gt_triangles[:, :, 0, 1])))
     gt_areas = tf.abs(0.5 * gt_areas)
-
     pred_areas = (((pred_triangles[:, :, 1, 0] - pred_triangles[:, :, 0, 0]) *
                    (pred_triangles[:, :, 2, 1] - pred_triangles[:, :, 0, 1])) -
                   ((pred_triangles[:, :, 2, 0] - pred_triangles[:, :, 0, 0]) *
                    (pred_triangles[:, :, 1, 1] - pred_triangles[:, :, 0, 1])))
     pred_areas = tf.abs(0.5 * pred_areas)
-
     gt_volumes = tf.multiply(gt_heights, gt_areas)
     pred_volumes = tf.multiply(pred_heights, pred_areas)
 

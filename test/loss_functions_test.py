@@ -1,9 +1,10 @@
 import unittest
 import numpy as np
+import struct
 import tensorflow as tf
 from src.loss_functions import wcel_loss, virtual_normal_loss
 from src.fill_rate_loss import actual_fill_rate_loss
-from src.image_utils import depth_to_bins
+from src.image_utils import depth_to_bins, bins_to_depth, resize_normalize
 from src.model import sm_model
 from src.data_loader import load_nyudv2
 
@@ -47,15 +48,27 @@ class VNLTest(unittest.TestCase):
 
 class FRLTest(unittest.TestCase):
     def test_run(self):
-        gt_depth = tf.random.uniform(shape=(8, 224, 224), minval=0.25, maxval=3.)
+        d_file = "C:/Users/Victor/Documents/Github/garbage_view/data/train/data_0/000345.raw"
+        with open(d_file, "rb") as file:
+            d_img = file.read()
+        d_img = np.array(struct.unpack("H" * 480 * 640, d_img), dtype='uint16').reshape((480, 640, 1))
+        d_img = tf.expand_dims(d_img, axis=0)
+        _, gt_depth = resize_normalize(d_img, d_img)
+        gt_depth = gt_depth[:, :, :, 0] / 1000
+        #gt_depth = tf.random.uniform(shape=(8, 224, 224), minval=0.25, maxval=3.)
         gt_bins = depth_to_bins(gt_depth)
         one_hot = tf.one_hot(gt_bins, 150)
+        gt_depth = bins_to_depth(one_hot)
         no_loss = actual_fill_rate_loss(gt_depth, one_hot)
         print(no_loss)
-        self.assertTrue(no_loss < 0.01)
-        pred_softmax = tf.keras.activations.softmax(tf.random.uniform((8, 224, 224, 150)))
-        some_loss = actual_fill_rate_loss(gt_depth, pred_softmax)
+        self.assertTrue(no_loss == 0.)
+        pred_depth = gt_depth + 0.01
+        pred_bins = depth_to_bins(pred_depth)
+        one_hot = tf.one_hot(pred_bins, 150)
+        some_loss = actual_fill_rate_loss(gt_depth, one_hot)
+        print(some_loss)
         self.assertTrue(some_loss != 0.0)
+        
 
 
 if __name__ == '__main__':
