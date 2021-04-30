@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 import tensorflow as tf
 from src.loss_functions import wcel_loss, virtual_normal_loss
+from src.fill_rate_loss import actual_fill_rate_loss
 from src.image_utils import depth_to_bins
 from src.model import sm_model
 from src.data_loader import load_nyudv2
@@ -42,6 +43,19 @@ class VNLTest(unittest.TestCase):
         pred = model.predict(rgb)
         vnl_loss = virtual_normal_loss(gt, pred)
         print(vnl_loss)
+
+
+class FRLTest(unittest.TestCase):
+    def test_run(self):
+        gt_depth = tf.random.uniform(shape=(8, 224, 224), minval=0.25, maxval=3.)
+        gt_bins = depth_to_bins(gt_depth)
+        one_hot = tf.one_hot(gt_bins, 150)
+        no_loss = actual_fill_rate_loss(gt_depth, one_hot)
+        print(no_loss)
+        self.assertTrue(no_loss < 0.01)
+        pred_softmax = tf.keras.activations.softmax(tf.random.uniform((8, 224, 224, 150)))
+        some_loss = actual_fill_rate_loss(gt_depth, pred_softmax)
+        self.assertTrue(some_loss != 0.0)
 
 
 if __name__ == '__main__':
