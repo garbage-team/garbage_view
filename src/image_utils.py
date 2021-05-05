@@ -31,21 +31,17 @@ def img_augmentation(rgb, d, img_size=224):
         rgb = tf.image.flip_left_right(rgb)
         d = tf.image.flip_up_down(d)
         d = tf.image.flip_left_right(d)
-    height = rgb.shape[0]
-    width = rgb.shape[1]
-    new_height = random.randint(img_size, height)
-    new_width = random.randint(img_size, width)
-    offset_height = random.randint(0, height - new_height)
-    offset_width = random.randint(0, width - new_width)
 
-    rgb = tf.image.crop_to_bounding_box(rgb, offset_height, offset_width, new_height, new_width)
-    d = tf.image.crop_to_bounding_box(d, offset_height, offset_width, new_height, new_width)
-
-    # rgb, d = resize_normalize(rgb, d, max_depth=80000.)
+    # Add noise augmentation
+    max_noise = 2
+    noise = tf.random.uniform(shape=rgb.shape, minval=-max_noise, maxval=max_noise, dtype=tf.int32)
+    noise_mask = tf.logical_or(tf.greater(rgb, 255-max_noise), tf.less(rgb, max_noise))
+    noise = noise * tf.cast(tf.logical_not(noise_mask), tf.int32)
+    rgb = tf.cast(tf.cast(rgb, tf.int32) + noise, tf.uint8)
     return rgb, d
 
 
-def resize_normalize(rgb, d, max_depth=80., model_max_output=80., img_size=224):
+def resize_normalize(rgb, d, max_depth=cfg["max_depth"], model_max_output=cfg["max_depth"], img_size=224):
     resize = tf.keras.Sequential([
         tf.keras.layers.experimental.preprocessing.Resizing(img_size, img_size)
     ])

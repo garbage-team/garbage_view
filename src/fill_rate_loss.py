@@ -14,15 +14,16 @@ def actual_fill_rate_loss(gt, pred, fov="kinect", z_zero=1.3):
     :param z_zero: distance to top of container (float)
     :return: the loss (tf.float32 [,])
     """
+    batch_dims = gt.shape[0]
+    if not batch_dims:
+        batch_dims = 1
+    gt = gt[:, :, :, 0]
     gt_xyz = depth_to_xyz(gt, fov=fov)
     pred_depth = bins_to_depth(pred)
     pred_xyz = depth_to_xyz(pred_depth, fov=fov)
 
     lim = tf.constant(cfg["fill_rate_loss_lim"], dtype=tf.float32)
     gt_mask = clip_by_border(gt_xyz, lim=lim)
-    print(tf.reduce_sum(tf.cast(gt_mask, tf.int32)))
-    print(tf.reduce_sum(tf.ones_like(tf.cast(gt_mask, tf.int32))))
-    # pred_mask = clip_by_border(pred_xyz, lim=lim)
 
     x, y, z = tf.split(gt_xyz, num_or_size_splits=3, axis=-1)
     z = z_zero - z
@@ -48,7 +49,7 @@ def actual_fill_rate_loss(gt, pred, fov="kinect", z_zero=1.3):
     b = indices[:, :, 1] + tf.tile(tf.expand_dims(x, axis=-1), (1, 3))
 
     indices = tf.stack([a, b], axis=-1)
-    indices = tf.tile(tf.expand_dims(indices, axis=0), (gt.shape[0], 1, 1, 1))
+    indices = tf.tile(tf.expand_dims(indices, axis=0), (batch_dims, 1, 1, 1))
     gt_triangles = tf.gather_nd(gt_xyz, indices, batch_dims=1)      # [b, (223*223*2), 3(points), 3(xyz)]
     pred_triangles = tf.gather_nd(pred_xyz, indices, batch_dims=1)  # [b, (223*223*2), 3(points), 3(xyz)]
 

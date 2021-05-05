@@ -6,6 +6,7 @@ import cv2
 import random
 import src.image_utils
 import tensorflow_datasets as tfds
+from src.config import cfg
 
 
 def create_paths(base):
@@ -90,7 +91,7 @@ def load_nyudv2(batch=4, shuffle=True, ds_path='D:/wsl/tensorflow_datasets', spl
                              data_dir=ds_path)
     nyudv2 = nyudv2.map(src.image_utils.img_augmentation,
                         num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    nyudv2 = nyudv2.map(lambda x, y: src.image_utils.resize_normalize(x, y, max_depth=80.),
+    nyudv2 = nyudv2.map(lambda x, y: src.image_utils.resize_normalize(x, y, max_depth=cfg["max_depth"]),
                         num_parallel_calls=tf.data.AUTOTUNE)
 
     if batch:
@@ -155,7 +156,7 @@ def load_tfrecord_dataset(tf_record_files, shuffle=2000, batch=4, augment=True):
     if augment:
         ds = ds.map(src.image_utils.img_augmentation, num_parallel_calls=tf.data.AUTOTUNE)
 
-    ds = ds.map(lambda x, y: src.image_utils.resize_normalize(x, y, max_depth=80000.),
+    ds = ds.map(lambda x, y: src.image_utils.resize_normalize(x, y, max_depth=cfg["max_depth"]*1000.),
                 num_parallel_calls=tf.data.AUTOTUNE)
     ds = ds.shuffle(shuffle)
     ds = ds.batch(batch)

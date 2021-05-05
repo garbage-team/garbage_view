@@ -8,7 +8,7 @@ cfg = dict()
 # Config for output and input of the model
 cfg["input_size"] = (224, 224, 3)
 cfg["depth_bins"] = 150
-cfg["max_depth"] = 80.
+cfg["max_depth"] = 10.
 cfg["min_depth"] = 0.25
 cfg["bin_interval"] = (np.log10(cfg["max_depth"]) - np.log10(cfg["min_depth"])) / cfg["depth_bins"]
 
