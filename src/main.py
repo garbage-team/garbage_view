@@ -10,10 +10,10 @@ from src.data_loader import load_nyudv2, load_data, create_dataset, load_tfrecor
 
 def main():
     # config_gpu()
-    path = 'D:/github/garbage_view/models/model_2_0+5+5+5'
+    path = 'D:/github/garbage_view/models/model_small'
     ds_path = 'D:/tensorflow_datasets'
-    model = load_model(path)
-    # model = sm_model()
+    # model = load_model(path)
+    model = sm_model()
     model.summary()
     model = optimize_compile_model(model, fov="intel")
 
@@ -25,16 +25,21 @@ def main():
 
 
 def training_loop(model):
-    path = 'D:/github/garbage_view/models/model_2_15nyu_5own_frl'
+    path = 'D:/github/garbage_view/models/model_small_aspp'
     ds_path = 'D:/tensorflow_datasets'
-    epochs = [5]
-    lr = [0.00005]
-    for i in range(1):
-        optimize_compile_model(model, fov="intel", lr=lr[i])
-        ds_train = load_tfrecord_dataset("D:/garbage_record_train", batch=1)
-        ds_val = load_tfrecord_dataset("D:/garbage_record_validation", batch=1, augment=False)
-        # ds_train, _ = load_nyudv2(batch=4, shuffle=True, ds_path=ds_path, split='train')
-        # ds_val, _ = load_nyudv2(batch=4, shuffle=True, ds_path=ds_path, split='validation')
+    epochs = [10]
+    lr = tf.keras.optimizers.schedules.PolynomialDecay(
+        initial_learning_rate=0.0001,
+        end_learning_rate=0.00001,
+        decay_steps=200000,
+        power=0.9
+    )
+    for i in range(len(epochs)):
+        optimize_compile_model(model, fov="kinect", lr=lr)
+        # ds_train = load_tfrecord_dataset("D:/garbage_record_train", batch=1)
+        # ds_val = load_tfrecord_dataset("D:/garbage_record_validation", batch=1, augment=False)
+        ds_train, _ = load_nyudv2(batch=4, shuffle=True, ds_path=ds_path, split='train')
+        ds_val, _ = load_nyudv2(batch=4, shuffle=True, ds_path=ds_path, split='validation')
         history = model.fit(ds_train, epochs=epochs[i], validation_data=ds_val,
                             callbacks=[tf.keras.callbacks.TerminateOnNaN()])
         save_model(model, history, path=path)
@@ -44,8 +49,8 @@ def training_loop(model):
 def custom_loss(gt, pred, fov="kinect"):
     loss_wcel = wcel_loss(gt, pred)
     loss_vnl = 6 * virtual_normal_loss(gt, pred, fov=fov)
-    loss_frl = 0.1 * actual_fill_rate_loss(gt, pred, fov=fov)
-    return loss_wcel + loss_vnl + loss_frl
+    # loss_frl = 0.1 * actual_fill_rate_loss(gt, pred, fov=fov)
+    return loss_wcel + loss_vnl # + loss_frl
 
 
 def custom_accuracy(gt, pred):
@@ -53,16 +58,11 @@ def custom_accuracy(gt, pred):
     return 1. / (1. + tf.keras.metrics.MSE(gt, tf.expand_dims(pred_depth, axis=-1)))
 
 
-def save_to_tflite(model):
-    path = "../model/"
-
-    # Save the model as a tf SavedModel object
-    tf.saved_model.save(model, path)
-
+def save_to_tflite(model_path):
     # Convert the saved tf2 model as a tflite object
-    converter = tf.lite.TFLiteConverter.from_saved_model(path)
+    converter = tf.lite.TFLiteConverter.from_saved_model(model_path)
     tflite_model = converter.convert()
-    open("../model/lite_model.tflite", "wb").write(tflite_model)
+    open(model_path + "_lite_model.tflite", "wb").write(tflite_model)
     return None
 
 

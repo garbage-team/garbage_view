@@ -21,6 +21,7 @@ def encoder_decoder():
 
     # Upsampling, and placing features in the correct position
     x = bottle_neck  # Here we might apply ASPP
+    x = global_pool_block(x.shape[1:])(x)
     x = tf.keras.layers.Conv2DTranspose(cfg["model_bottleneck_channels"], 3, strides=2,
                                         padding='same')(x)
     for i in range(len(decode_filters) - 1):
