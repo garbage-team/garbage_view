@@ -33,15 +33,18 @@ Recommended dependencies:
 ## Data for training and validation
 The model was first pretrained on [NYUDv2](https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html). The trained on data gathered using an Intel RealSense 3D-camera, code for that process can be found [here](https://github.com/garbage-team/realsense_camera). The dataset should contain a pairs of RGB and depth maps, stored together in a directory. The data can be seperated into several subfolder as long as each pair is in the same folder. The script will automaticaly split the input data randomly into training and validation, and saves them as seperate tfrecords.
 
-To use NYUDv2 in training, simply run using (to be added).
+To use NYUDv2 in training, simply load the dataset using [load_nyudv2](https://github.com/garbage-team/garbage_view/blob/dev/src/data_loader.py#L89).
 
-To use self gathered dataset, first convert the data to a tfrecord (for easier handling) using (to be added). Then load the dataset using (to be added).
+To use self gathered dataset, first convert the data to a tfrecord (for easier handling) using [write_tfrecord](https://github.com/garbage-team/garbage_view/blob/dev/src/data_loader.py#L118). Then load the dataset using [load_tfrecord](https://github.com/garbage-team/garbage_view/blob/dev/src/data_loader.py#L143).
 
 ## Training
-A complete training pipeline is setup in (to be added). Simply ensure the correct dataset is loaded, initialize a model or load a previous, verify the amount of epochs and/or any setting, and then run the script to start training. 
+A complete training pipeline is setup in [training_loop](https://github.com/garbage-team/garbage_view/blob/42a8fe669ebd6f383fdb35230c06be679666f9f7/src/main.py#L27). Simply ensure the correct dataset is loaded, initialize a model or load a previous, verify the amount of epochs and/or any setting, and then run the script to start training. 
 
 Our dataset for training and validation will be available for download, coming soon.
 
+## Authors
+Victor Hanefors
+Jonas Jungåker
 
 ## Citation
 Check out our thesis at: (link coming soon)
