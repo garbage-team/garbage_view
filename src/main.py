@@ -18,7 +18,7 @@ def main():
     model.summary()
     model = optimize_compile_model(model, fov="intel")
 
-    training_loop(model)
+    training_loop(model, ds='nyu', output_path="D:/new_model")
     # Optional test on validation data after training
     ds = load_tfrecord_dataset("D:/garbage_record_validation", batch=1, augment=False)
     for rgb, d in ds.take(2):
