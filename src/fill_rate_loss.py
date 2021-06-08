@@ -14,6 +14,7 @@ def actual_fill_rate_loss(gt, pred, fov="kinect", z_zero=1.3):
     :param z_zero: distance to top of container (float)
     :return: the loss (tf.float32 [,])
     """
+    # Ensure the dimensions are in order and convert to point clouds
     batch_dims = gt.shape[0]
     if not batch_dims:
         batch_dims = 1
@@ -21,7 +22,7 @@ def actual_fill_rate_loss(gt, pred, fov="kinect", z_zero=1.3):
     gt_xyz = depth_to_xyz(gt, fov=fov)
     pred_depth = bins_to_depth(pred)
     pred_xyz = depth_to_xyz(pred_depth, fov=fov)
-
+    # Extract the region of interest and clip the point clouds accordingly
     lim = tf.constant(cfg["fill_rate_loss_lim"], dtype=tf.float32)
     gt_mask = clip_by_border(gt_xyz, lim=lim)
 
@@ -34,7 +35,7 @@ def actual_fill_rate_loss(gt, pred, fov="kinect", z_zero=1.3):
 
     gt_xyz = tf.multiply(gt_xyz, tf.expand_dims(tf.cast(tf.logical_not(gt_mask), tf.float32), axis=-1))
     pred_xyz = tf.multiply(pred_xyz, tf.expand_dims(tf.cast(tf.logical_not(gt_mask), tf.float32), axis=-1))
-
+    # Extract indices for triangulation
     indices = tf.constant([[[0, 0], [1, 0], [0, 1]],
                            [[0, 1], [1, 0], [1, 1]]],
                           dtype=tf.int32)  # [2, 3, 3] int32
@@ -50,6 +51,8 @@ def actual_fill_rate_loss(gt, pred, fov="kinect", z_zero=1.3):
 
     indices = tf.stack([a, b], axis=-1)
     indices = tf.tile(tf.expand_dims(indices, axis=0), (batch_dims, 1, 1, 1))
+
+    # Construct triangles and get their area and average height to calculate volumes
     gt_triangles = tf.gather_nd(gt_xyz, indices, batch_dims=1)      # [b, (223*223*2), 3(points), 3(xyz)]
     pred_triangles = tf.gather_nd(pred_xyz, indices, batch_dims=1)  # [b, (223*223*2), 3(points), 3(xyz)]
 
@@ -68,14 +71,15 @@ def actual_fill_rate_loss(gt, pred, fov="kinect", z_zero=1.3):
     pred_areas = tf.abs(0.5 * pred_areas)
     gt_volumes = tf.multiply(gt_heights, gt_areas)
     pred_volumes = tf.multiply(pred_heights, pred_areas)
-
+    # Loss returned is difference in volume
     return tf.abs(tf.reduce_sum(gt_volumes) - tf.reduce_sum(pred_volumes))
 
 
 def approximate_fill_rate_loss(gt, pred, fov="kinect"):
     """
     Calculates the approximate fill rate loss between two depth
-    maps through squared error
+    maps through squared error. Used during early development
+    testing.
 
     :param gt: ground truth depth image (tf.float32 [b, h, w])
     :param pred: Predicted depth bins (tf.float32 [b, h, w, c])
@@ -88,7 +92,6 @@ def approximate_fill_rate_loss(gt, pred, fov="kinect"):
 
     lim = tf.constant(cfg["fill_rate_loss_lim"], dtype=tf.float32)
     gt_mask = clip_by_border(gt_xyz, lim=lim)
-    # pred_mask = clip_by_border(pred_xyz, lim=lim)
 
     gt_xyz = tf.multiply(gt_xyz, tf.cast(tf.logical_not(gt_mask), tf.float32))
     pred_xyz = tf.multiply(pred_xyz, tf.cast(tf.logical_not(gt_mask), tf.float32))

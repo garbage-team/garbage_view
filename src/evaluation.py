@@ -5,7 +5,8 @@ from src.main import load_model
 from src.data_loader import load_nyudv2
 from src.image_utils import bins_to_depth
 
-# Code for running ablation study, has not been fully tested or used
+# Code for running ablation study
+# NOTE: has not been fully tested or used
 
 
 def evaluate_model(model_path):
@@ -95,7 +96,11 @@ def evaluate_error(gt, pred, criteria):
 
 
 def select_index(img_size):
-    # Not used?    
+    """
+    Extract the index of two points, to use instead of conducting the evaluation across the entire image
+    @param img_size: The size of the image
+    @return: dict with index of two points p1 and p2
+    """
     p1 = np.random.choice(img_size, int(img_size * 0.6), replace=False)
     np.random.shuffle(p1)
     p2 = np.random.choice(img_size, int(img_size * 0.6), replace=False)

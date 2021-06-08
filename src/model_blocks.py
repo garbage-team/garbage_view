@@ -1,12 +1,20 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
 from src.config import cfg
+# Model blocks used in the structuring of the model
 
 
 def adaptive_merge(ll_filters_in: int, hl_filters_in: int, filters_out: int):
-    # An adaptive merge block for merging low level and high level features
-    # Must know the number of filters in the inputs and the number of filters out
-    # returns a model with inputs as [low_level, high_level] and outputs [merged]
+    """
+    An adaptive merge block for merging low level and high level features
+    Must know the number of filters in the inputs and the number of filters out
+    returns a model with inputs as [low_level, high_level] and outputs [merged]
+
+    @param ll_filters_in: Low level filters input to the block
+    @param hl_filters_in: High level filters input to the block
+    @param filters_out: Filters output from the block
+    @return: tf.keras.Model with inputs as [low_level, high_level] and outputs [merged]
+    """
 
     # Defining the inputs of the model
     low_level = tf.keras.Input(shape=(None, None, ll_filters_in))
@@ -26,8 +34,13 @@ def adaptive_merge(ll_filters_in: int, hl_filters_in: int, filters_out: int):
 
 
 def dilated_residual(filters_in: int, filters_out: int):
-    # A dilated residual block
-    # returns a model that takes an input and returns an output
+    """
+    A dilated residual block
+
+    @param filters_in: Filters input to the block
+    @param filters_out: Filters output from the block
+    @return: tf.keras.Model with inputs as [filters_in] and outputs [filters_out]
+    """
     inputs = tf.keras.Input(shape=(None, None, filters_in))
 
     x = tf.keras.layers.Conv2D(filters_out, (1, 1), use_bias=False)(inputs)
@@ -45,9 +58,14 @@ def dilated_residual(filters_in: int, filters_out: int):
 
 
 def prediction_layer(filters_in: int, depth_bins: int):
-    # The prediction layer of the model
-    # Takes any amount of filters as an input and applies a convolution,
-    # and then a softmax in the channels dimension, returns the depth bins
+    """
+    The prediction layer of the model
+    Takes any amount of filters as an input and applies a convolution, and then a softmax in the channels dimension,
+    returns the depth bins
+    @param filters_in: Filters input to the block
+    @param depth_bins: Number of depth bin channels
+    @return: tf.keras.Model outputting logit bins and softmax bins
+    """
     inputs = tf.keras.Input(shape=(None, None, filters_in))
     x = tf.keras.layers.SpatialDropout2D(0.1)(inputs)
     x = tf.keras.layers.Conv2D(depth_bins, 3, strides=1,
@@ -57,6 +75,14 @@ def prediction_layer(filters_in: int, depth_bins: int):
 
 
 def decode_layer(ll_filters_in: int, hl_filters_in: int, filters_out: int):
+    """
+    Decoding layer of the model
+
+    @param ll_filters_in: Low level filters input to the block
+    @param hl_filters_in: High level filters input to the block
+    @param filters_out: Filters output from the block
+    @return: tf.keras.Model
+    """
     ll_in = tf.keras.Input(shape=(None, None, ll_filters_in))
     hl_in = tf.keras.Input(shape=(None, None, hl_filters_in))
     x = adaptive_merge(ll_filters_in, hl_filters_in, hl_filters_in)((ll_in, hl_in))
@@ -69,6 +95,11 @@ def decode_layer(ll_filters_in: int, hl_filters_in: int, filters_out: int):
 
 
 def encoder():
+    """
+    Encoder using MobileNetV2 pretrained on ImageNet, with filter layers as given in config.py
+
+    @return: tf.keras.Model that encodes an input using given layer sizes
+    """
     base_encoder = tf.keras.applications.MobileNetV2(
       input_shape=cfg["input_size"],
       include_top=False,
@@ -85,6 +116,13 @@ def encoder():
 
 
 def aspp_block(input_shape):
+    """
+    NOTE: Might not work as intended, performance under expectations and NaN loss
+    Atrous Spatial Pyramid Pooling block, used as a bottleneck to capture image features
+
+    @param input_shape: Tuple input shape (h, w)
+    @return: tf.keras.Model
+    """
     inputs = tf.keras.layers.Input(shape=input_shape)
     filters_out = 128
     x1 = tf.keras.layers.Conv2D(filters_out, (1, 1),
@@ -120,6 +158,12 @@ def aspp_block(input_shape):
 
 
 def global_pool_block(input_shape):
+    """
+    Global Average Pooling Block, used to capture image features
+
+    @param input_shape: Tuple input shape (h, w)
+    @return: tf.keras.Model
+    """
     inputs = tf.keras.layers.Input(shape=input_shape)
     filters_out = 128
     x = tf.keras.layers.Conv2D(filters_out, (1, 1),

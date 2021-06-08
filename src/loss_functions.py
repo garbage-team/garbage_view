@@ -5,9 +5,13 @@ from math import pi
 
 
 def wcel_loss(gt, pred):
-    # Weighted cross entropy loss function for determining the
-    # loss of the predicted logits and the ground truth depth logits
-    # param pred: [b, h, w, 150]
+    """
+    Weighted cross entropy loss (WCEL) function for determining the loss of the predicted logits
+    and the ground truth depth logits.
+    @param gt: depth ground truth image of shape (b, h, w)
+    @param pred: predicted softmax depth bins from the neural net of shape (b, h, w, c)
+    @return: wcel loss
+    """
     if len(gt.shape) == 4:
         gt = gt[:, :, :, 0]
     depth_bins = cfg["depth_bins"]
@@ -28,7 +32,7 @@ def wcel_loss(gt, pred):
 
 def virtual_normal_loss(gt, pred, fov="kinect"):
     """
-    Calculates the virtual normal loss between gt d image and predicted depth bins
+    Calculates the virtual normal loss between gt depth image and predicted depth bins
 
     :param gt: d ground truth image of shape (b, h, w)
     :param pred: predicted softmax depth bins from the neural net of shape (b, h, w, c)
