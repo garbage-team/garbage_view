@@ -56,9 +56,6 @@ An example of this process can be seen in [src/main.py](https://github.com/garba
 
 Our dataset for training and validation will be available for download, coming soon.
 
-## Authors
-Victor Hanefors
-Jonas Jungåker
 
 ## Citation
 Check out our thesis at: (link coming soon)
