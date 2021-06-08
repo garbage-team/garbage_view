@@ -37,11 +37,13 @@ To use NYUDv2 in training, simply load the dataset using [load_nyudv2](https://g
 
 To use self gathered dataset, first convert the data to a tfrecord (for easier handling) using [write_tfrecord](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/data_loader.py#L145). Then load the dataset using [load_tfrecord_dataset](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/data_loader.py#L171).
 
+Our dataset for training and validation will be available for download, coming soon.
 
 ## Guide: Setup model and train it.
 An example of this process can be seen in [src/main.py](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/main.py#L12).
 
 1. Generate a model, we recommend the softmax model [sm_model()](https://github.com/garbage-team/garbage_view/blob/333953227170c9cabfc815fad1eeeba0ff259250/src/model.py#L53) for easy implementation with the loss functions. 
+      * If training an existing model, instead load it using [load_model()](https://github.com/garbage-team/garbage_view/blob/7c99a90fe3e1e9601a465aeec8d4dd1e1a779add/src/main.py#L157)
 2. Decide on the type of training you wish to do, which dataset, what parameters, which loss functions etc.
     * Dataset, learning rate and epochs is passed as parameters to the [training_loop()](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/main.py#L25).
     * Loss functions can be altered in the [custom_loss()](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/main.py#L66) function, and their respective weighing for the total loss.
@@ -52,9 +54,6 @@ An example of this process can be seen in [src/main.py](https://github.com/garba
 
 * When the model has finished training, the model can tested by passing validation images to [test_model()](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/main.py#L115).
 * The model history can be visualized using [plot_history()](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/image_utils.py#L257) to help determine if overfitting issues are present.
-
-
-Our dataset for training and validation will be available for download, coming soon.
 
 
 ## Citation
