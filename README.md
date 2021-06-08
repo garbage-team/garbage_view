@@ -33,9 +33,9 @@ Recommended dependencies:
 ## Data for training and validation
 The model was first pretrained on [NYUDv2](https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html). The trained on data gathered using an Intel RealSense 3D-camera, code for that process can be found [here](https://github.com/garbage-team/realsense_camera). The dataset should contain a pairs of RGB and depth maps, stored together in a directory. The data can be seperated into several subfolder as long as each pair is in the same folder. The script will automaticaly split the input data randomly into training and validation, and saves them as seperate tfrecords.
 
-To use NYUDv2 in training, simply load the dataset using [load_nyudv2](https://github.com/garbage-team/garbage_view/blob/dev/src/data_loader.py#L89).
+To use NYUDv2 in training, simply load the dataset using [load_nyudv2](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/data_loader.py#L95).
 
-To use self gathered dataset, first convert the data to a tfrecord (for easier handling) using [write_tfrecord](https://github.com/garbage-team/garbage_view/blob/dev/src/data_loader.py#L118). Then load the dataset using [load_tfrecord](https://github.com/garbage-team/garbage_view/blob/dev/src/data_loader.py#L143).
+To use self gathered dataset, first convert the data to a tfrecord (for easier handling) using [write_tfrecord](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/data_loader.py#L145). Then load the dataset using [load_tfrecord_dataset](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/data_loader.py#L171).
 
 
 ## Guide: Setup model and train it.
@@ -43,14 +43,14 @@ An example of this process can be seen in [src/main.py](https://github.com/garba
 
 1. Generate a model, we recommend the softmax model [sm_model()](https://github.com/garbage-team/garbage_view/blob/333953227170c9cabfc815fad1eeeba0ff259250/src/model.py#L53) for easy implementation with the loss functions. 
 2. Decide on the type of training you wish to do, which dataset, what parameters, which loss functions etc.
-    * Dataset, learning rate and epochs is passed as parameters to the [training_loop()](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/main.py#L29).
-    * Loss functions can be altered in the [custom_loss()](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/main.py#L70) function, and their respective weighing for the total loss.
-3. Run [training_loop()](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/main.py#L29) and wait for the training to complete.
+    * Dataset, learning rate and epochs is passed as parameters to the [training_loop()](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/main.py#L25).
+    * Loss functions can be altered in the [custom_loss()](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/main.py#L66) function, and their respective weighing for the total loss.
+3. Run [training_loop()](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/main.py#L25) and wait for the training to complete.
 4. When training is completed, the model and training history will be saved.
 
 (Optional)
 
-* When the model has finished training, the model can tested by passing validation images to [test_model()](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/main.py#L119).
+* When the model has finished training, the model can tested by passing validation images to [test_model()](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/main.py#L115).
 * The model history can be visualized using [plot_history()](https://github.com/garbage-team/garbage_view/blob/a7f5a2ab0e1caa5d02306bf6ae7ecdccd26486c9/src/image_utils.py#L257) to help determine if overfitting issues are present.
 
 
