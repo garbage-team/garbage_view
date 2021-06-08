@@ -11,12 +11,8 @@ from src.data_loader import load_nyudv2, load_data, create_dataset, load_tfrecor
 
 def main():
     # Set the path to the model and dataset if any
-    path = 'D:/github/garbage_view/models/model_small'
-    ds_path = 'D:/tensorflow_datasets'
-    # model = load_model(path)
     model = sm_model()
     model.summary()
-    model = optimize_compile_model(model, fov="intel")
 
     training_loop(model, ds='nyu', output_path="D:/new_model")
     # Optional test on validation data after training
