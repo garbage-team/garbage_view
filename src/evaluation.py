@@ -1,11 +1,19 @@
 import numpy as np
-import tensorflow as tf
+import csv
+import matplotlib.pyplot as plt
 from src.main import load_model
-from data_loader import load_nyudv2
+from src.data_loader import load_nyudv2
 from src.image_utils import bins_to_depth
+
+# Code for running ablation study, has not been fully tested or used
 
 
 def evaluate_model(model_path):
+    """
+    Evaluates a model using common metrics for comparison
+    @param model_path: String path to the model
+    @return: dictionary with the criteria as the key, and their values
+    """
     model = load_model(model_path)
     ds = load_nyudv2(batch=4, shuffle=False, split='validation')
     criteria = {'err_absRel': 0, 'err_squaRel': 0, 'err_rms': 0,
@@ -21,6 +29,14 @@ def evaluate_model(model_path):
 
 
 def evaluate_error(gt, pred, criteria):
+    """
+    Calculates various types of error for between ground truth and prediction. The various errors are intended to
+    showcase different strengths and weaknesses in the predictions.
+    @param gt: Ground truth depth
+    @param pred: Predicted depth
+    @param criteria: dict with criteria as the keys
+    @return: updated criteria dict
+    """
 
     zero_mask = gt > 0
     gt = gt[zero_mask]
@@ -61,7 +77,7 @@ def evaluate_error(gt, pred, criteria):
     log10_sum = np.sum(np.abs(np.log10(gt) - np.log10(pred)))
     criteria['err_log10'] += log10_sum
 
-    # Delta
+    # Deltas
     gt_pred = gt_rescaled / pred_rescaled
     pred_gt = pred_rescaled / gt_rescaled
     gt_pred = np.reshape(gt_pred, (1, -1))
@@ -79,6 +95,7 @@ def evaluate_error(gt, pred, criteria):
 
 
 def select_index(img_size):
+    # Not used?    
     p1 = np.random.choice(img_size, int(img_size * 0.6), replace=False)
     np.random.shuffle(p1)
     p2 = np.random.choice(img_size, int(img_size * 0.6), replace=False)

@@ -24,20 +24,25 @@ cfg["encoder_block_names"] = [
     ]
 cfg["model_bottleneck_channels"] = cfg["decoder_filters"][0]
 
-# Loss function config
+# Loss function parameters
 cfg["wcel_weights"] = [[np.exp(-0.2 * (i - j) ** 2) for i in range(cfg["depth_bins"])]
                        for j in np.arange(cfg["depth_bins"])]
 cfg["vnl_sample_ratio"] = 0.15
 cfg["vnl_discard_ratio"] = 0.25
 cfg["fill_rate_loss_lim"] = [[-1, 1], [-1, 1], [1, 3]]
 
-# Dataset configs
+# Dataset parameters
 cfg["data_focal_length"] = (1.0, 1.0)  # (focal_x, focal_y)
 cfg["nyu_depth_path"] = 'D:/wsl/tensorflow_datasets'
 cfg["tflite_model_path"] = "lite_model_04-13.tflite"
+
+# FoV settings for different cameras.
+# Logitech C930e (inference setup)
 cfg["webcam_h_fov"] = 82.1
 cfg["webcam_v_fov"] = 52.2
+# Microsoft Kinect (NYUDV2)
 cfg["kinect_h_fov"] = 62
 cfg["kinect_v_fov"] = 48.6
+# Intel RealSense D415
 cfg["intel_h_fov"] = 69.4
 cfg["intel_v_fov"] = 42.5
