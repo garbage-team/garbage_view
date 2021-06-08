@@ -2,6 +2,7 @@ import tensorflow as tf
 import json
 import os.path
 from src.model import sm_model
+from src.config import cfg
 from src.image_utils import display_images, resize_normalize, bins_to_depth
 from src.loss_functions import wcel_loss, virtual_normal_loss
 from src.fill_rate_loss import actual_fill_rate_loss
@@ -25,33 +26,46 @@ def main():
     return None
 
 
-def training_loop(model):
+def training_loop(model, ds, output_path='my_model', lr='decay', epochs=[10]):
     """
     Training loop for training the model. Note that the paths need to be set manually, and switching
-    datasets is done manually using comments.
+    datasets is done manually using comments. The model can be trained using a polynomial decay learning
+    rate or setting a fixed learning rate. The training can also be run for x epochs then y epochs and so
+    on by passing the number of epochs as [x, y] id desired.
+
     @param model: model to be used in training
+    @param ds: dataset to be used, should be either 'nyu' or 'custom'
+    @param output_path: string output path for the saved model
+    @param lr: learning_rate, or 'decay' if using polynomial decay
+    @param epochs: list of epochs to train
     @return: None, saves the model and training history to the specified path
     """
 
-    path = 'D:/github/garbage_view/models/model_small_aspp'
-    ds_path = 'D:/tensorflow_datasets'
-    epochs = [10]
-    lr = tf.keras.optimizers.schedules.PolynomialDecay(
-        initial_learning_rate=0.0001,
-        end_learning_rate=0.00001,
-        decay_steps=200000,
-        power=0.9
-    )
+    if lr == 'decay':
+        lr = tf.keras.optimizers.schedules.PolynomialDecay(
+            initial_learning_rate=0.0001,
+            end_learning_rate=0.00001,
+            decay_steps=200000,
+            power=0.9
+        )
+
     for i in range(len(epochs)):
-        optimize_compile_model(model, fov="kinect", lr=lr)
-        # ds_train = load_tfrecord_dataset("D:/garbage_record_train", batch=1)
-        # ds_val = load_tfrecord_dataset("D:/garbage_record_validation", batch=1, augment=False)
-        ds_train, _ = load_nyudv2(batch=4, shuffle=True, ds_path=ds_path, split='train')
-        ds_val, _ = load_nyudv2(batch=4, shuffle=True, ds_path=ds_path, split='validation')
+        if ds == 'custom':
+            ds_train = load_tfrecord_dataset(cfg["garbage_train"], batch=1)
+            ds_val = load_tfrecord_dataset(cfg["garbage_validation"], batch=1, augment=False)
+            fov = 'intel'
+        elif ds == 'nyu':
+            ds_train = load_nyudv2(batch=4, shuffle=True, split='train')
+            ds_val = load_nyudv2(batch=4, shuffle=True, split='validation')
+            fov = 'kinect'
+        else:
+            raise AttributeError
+        optimize_compile_model(model, fov=fov, lr=lr)
         history = model.fit(ds_train, epochs=epochs[i], validation_data=ds_val,
                             callbacks=[tf.keras.callbacks.TerminateOnNaN()])
-        save_model(model, history, path=path)
+        save_model(model, history, path=output_path)
     return None
+
 
 def custom_loss(gt, pred, fov="kinect"):
     """

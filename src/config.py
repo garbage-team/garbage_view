@@ -35,6 +35,8 @@ cfg["fill_rate_loss_lim"] = [[-1, 1], [-1, 1], [1, 3]]
 cfg["data_focal_length"] = (1.0, 1.0)  # (focal_x, focal_y)
 cfg["nyu_depth_path"] = 'D:/wsl/tensorflow_datasets'
 cfg["tflite_model_path"] = "lite_model_04-13.tflite"
+cfg["garbage_train"] = "D:/garbage_record_train"
+cfg["garbage_validation"] = "D:/garbage_record_validation"
 
 # FoV settings for different cameras.
 # Logitech C930e (inference setup)

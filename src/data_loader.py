@@ -92,7 +92,7 @@ def ds_generator(data, shape):
         yield rgb, d
 
 
-def load_nyudv2(batch=4, shuffle=True, ds_path='D:/wsl/tensorflow_datasets', split='train'):
+def load_nyudv2(batch=4, shuffle=True, ds_path=cfg["nyu_depth_path"], split='train'):
     """
     Loads the nyudv2 dataset from tensorflow datasets. Note that the dataset will download if not existing
     in the path, and is ~80GB.
